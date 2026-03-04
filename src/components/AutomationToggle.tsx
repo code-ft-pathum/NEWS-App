@@ -6,10 +6,14 @@ import { getAutomationSettings, updateAutomationSettings } from "@/app/actions/d
 export default function AutomationToggle() {
     const [status, setStatus] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         async function loadSettings() {
             const settings = await getAutomationSettings();
+            if (settings.error) {
+                setError(settings.error);
+            }
             setStatus(settings || { enabled: false });
             setLoading(false);
         }
@@ -18,10 +22,13 @@ export default function AutomationToggle() {
 
     const handleToggle = async () => {
         setLoading(true);
+        setError(null);
         const newEnabled = !status?.enabled;
         const result = await updateAutomationSettings(newEnabled);
         if (result.success) {
             setStatus((prev: any) => ({ ...prev, enabled: newEnabled }));
+        } else {
+            setError(result.error || "Failed to update settings");
         }
         setLoading(false);
     };
@@ -42,7 +49,8 @@ export default function AutomationToggle() {
                     <div className="toggle-slider"></div>
                     <span className="toggle-text">{enabled ? "ENGAGED" : "OFFLINE"}</span>
                 </button>
-                <p className="toggle-hint">
+                {error && <p className="automation-error fade-in">{error}</p>}
+                <p className="automation-hint">
                     {enabled
                         ? "System is posting news to Facebook at synchronized intervals."
                         : "Manual mode active. Automation is suspended."}

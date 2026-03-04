@@ -3,7 +3,6 @@
 import { getNews } from "@/lib/news";
 import { publishToFacebook } from "./facebook";
 import { checkIsPublished, saveToPublished, getAutomationSettings, updateAutomationSettings } from "./db";
-import { Timestamp } from "firebase/firestore";
 
 export async function triggerAutomation() {
     console.log("Starting automation trigger...");
@@ -24,7 +23,6 @@ export async function triggerAutomation() {
         if (!articles || articles.length === 0) {
             await updateAutomationSettings(true, {
                 status: "error",
-                timestamp: Timestamp.now(),
                 message: "No news found from API"
             });
             return { success: false, message: "No news found" };
@@ -43,7 +41,6 @@ export async function triggerAutomation() {
         if (!targetArticle) {
             await updateAutomationSettings(true, {
                 status: "idle",
-                timestamp: Timestamp.now(),
                 message: "All fetched articles already published"
             });
             return { success: false, message: "No new articles to post" };
@@ -67,7 +64,6 @@ export async function triggerAutomation() {
 
             await updateAutomationSettings(true, {
                 status: "success",
-                timestamp: Timestamp.now(),
                 message: `Posted: ${targetArticle.title}`
             });
 
@@ -76,7 +72,6 @@ export async function triggerAutomation() {
 
         await updateAutomationSettings(true, {
             status: "error",
-            timestamp: Timestamp.now(),
             message: "FB API returned failure"
         });
         return { success: false, message: "FB Publish failed" };
@@ -84,7 +79,6 @@ export async function triggerAutomation() {
         console.error("Automation error:", error);
         await updateAutomationSettings(true, {
             status: "error",
-            timestamp: Timestamp.now(),
             message: error.message
         });
         return { success: false, error: error.message };
