@@ -21,6 +21,14 @@ if (admin.apps.length === 0) {
     }
 }
 
-export const adminDb = admin.firestore();
-export const adminAuth = admin.auth();
+export const getAdminDb = () => {
+    if (admin.apps.length === 0) throw new Error("Firebase Admin not initialized. Check your credentials.");
+    return admin.firestore();
+};
+
+export const getAdminAuth = () => {
+    if (admin.apps.length === 0) throw new Error("Firebase Admin not initialized.");
+    return admin.auth();
+};
+
 export { admin };

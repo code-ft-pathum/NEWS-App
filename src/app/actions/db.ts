@@ -1,9 +1,10 @@
 "use server";
 
-import { adminDb, admin } from "@/lib/firebase-admin";
+import { getAdminDb, admin } from "@/lib/firebase-admin";
 
 export async function checkIsPublished(url: string) {
     try {
+        const adminDb = getAdminDb();
         const snapshot = await adminDb.collection("posts")
             .where("url", "==", url)
             .limit(1)
@@ -17,6 +18,7 @@ export async function checkIsPublished(url: string) {
 
 export async function saveToPublished(article: { title: string, url: string, fbPostId: string }) {
     try {
+        const adminDb = getAdminDb();
         await adminDb.collection("posts").add({
             ...article,
             publishedAt: admin.firestore.Timestamp.now(),
@@ -30,10 +32,11 @@ export async function saveToPublished(article: { title: string, url: string, fbP
 
 export async function getPublishedPosts() {
     try {
+        const adminDb = getAdminDb();
         const snapshot = await adminDb.collection("posts")
             .orderBy("publishedAt", "desc")
             .get();
-        return snapshot.docs.map(doc => ({
+        return snapshot.docs.map((doc: any) => ({
             id: doc.id,
             ...doc.data(),
             publishedAt: doc.data().publishedAt?.toDate()?.toISOString()
@@ -46,6 +49,7 @@ export async function getPublishedPosts() {
 
 export async function getAutomationSettings() {
     try {
+        const adminDb = getAdminDb();
         const settingsRef = adminDb.collection("settings").doc("automation");
         const settingsDoc = await settingsRef.get();
 
@@ -71,6 +75,7 @@ export async function getAutomationSettings() {
 
 export async function updateAutomationSettings(enabled: boolean, lastRun?: { status: string, timestamp?: any, message?: string }) {
     try {
+        const adminDb = getAdminDb();
         const data: any = { enabled, updatedAt: admin.firestore.Timestamp.now() };
         if (lastRun) {
             // If timestamp passed from client, it's already an object, but we prefer server time for logs
