@@ -1,9 +1,4 @@
-import { startCronJob } from '@/lib/cron';
-
-// Initialize cron job when the app starts
-if (typeof window === 'undefined') {
-    // Only run on server
-    startCronJob();
-}
-
-export {};
+// Intentionally empty — automation is handled via Vercel Cron (vercel.json)
+// and triggered through /api/cron/post-news route.
+// node-cron is NOT used here as it doesn't work in serverless environments.
+export { };

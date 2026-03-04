@@ -133,3 +133,11 @@ export async function updateAutomationSettings(
         return { success: false, error: err.message };
     }
 }
+
+// Toggle automation on/off — used by CronToggle component
+export async function toggleCronStatus(): Promise<boolean> {
+    const current = await getAutomationSettings();
+    const newEnabled = !current.enabled;
+    await updateAutomationSettings(newEnabled);
+    return newEnabled;
+}
