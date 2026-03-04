@@ -1,38 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { handleLogin } from "./actions";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function LoginPage() {
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
-
-    async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
-
-        const formData = new FormData(e.currentTarget);
-        const username = formData.get("username") as string;
-        const password = formData.get("password") as string;
-
-        try {
-            // handleLogin either redirects (throws NEXT_REDIRECT) or returns an error object
-            const result = await handleLogin(username, password);
-            // Only reaches here if login failed (no redirect thrown)
-            setError(result?.error || "Invalid credentials.");
-            setLoading(false);
-        } catch (err: any) {
-            // NEXT_REDIRECT is thrown by redirect() — this is a success, not an error.
-            // Let Next.js handle the navigation — DO NOT setError here.
-            if (err?.digest?.startsWith("NEXT_REDIRECT")) {
-                // Navigation is in progress, keep loading state
-                return;
-            }
-            setError("An unexpected error occurred. Please try again.");
-            setLoading(false);
-        }
-    }
+function LoginForm() {
+    const searchParams = useSearchParams();
+    const error = searchParams.get("error");
 
     return (
         <div className="login-container fade-in">
@@ -42,14 +15,15 @@ export default function LoginPage() {
                     <p className="subtitle">RESTRICTED TERMINAL</p>
                 </div>
 
-                <form onSubmit={onSubmit} className="login-form">
+                {/* Plain HTML form → POST to /api/auth/login route handler */}
+                {/* This is the most reliable way to set cookies in Next.js */}
+                <form method="POST" action="/api/auth/login" className="login-form">
                     <div className="input-group">
                         <label>IDENTIFIER</label>
                         <input
                             type="text"
                             name="username"
                             placeholder="Username..."
-                            disabled={loading}
                             required
                             autoComplete="username"
                         />
@@ -60,17 +34,26 @@ export default function LoginPage() {
                             type="password"
                             name="password"
                             placeholder="••••••••"
-                            disabled={loading}
                             required
                             autoComplete="current-password"
                         />
                     </div>
-                    {error && <p className="login-error">{error}</p>}
-                    <button type="submit" className="login-btn" disabled={loading}>
-                        {loading ? "AUTHENTICATING..." : "AUTHORIZE SESSION"}
+                    {error === "invalid" && (
+                        <p className="login-error">Invalid credentials. Access Denied.</p>
+                    )}
+                    <button type="submit" className="login-btn">
+                        AUTHORIZE SESSION
                     </button>
                 </form>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
     );
 }

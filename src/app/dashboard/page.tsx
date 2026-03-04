@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getNews } from "@/lib/news";
 import { getCronStatus } from "@/app/actions/db";
-import { handleLogout } from "./login/actions";
 import DashboardGrid from "@/components/DashboardGrid";
 import CronToggle from "@/components/CronToggle";
 import Link from "next/link";
@@ -58,7 +57,7 @@ export default async function DashboardPage({
                     <a href="/" className="back-link">
                         <i className="fa-solid fa-arrow-left"></i> BACK TO GRID
                     </a>
-                    <form action={handleLogout}>
+                    <form method="POST" action="/api/auth/logout">
                         <button type="submit" className="logout-btn">
                             <i className="fa-solid fa-power-off"></i> TERMINATE SESSION
                         </button>
