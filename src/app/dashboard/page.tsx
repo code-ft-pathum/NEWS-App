@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getNews } from "@/lib/news";
-import { getCronStatus } from "@/app/actions/db";
 import DashboardGrid from "@/components/DashboardGrid";
-import CronToggle from "@/components/CronToggle";
+import ManualSync from "@/components/ManualSync";
 import Link from "next/link";
 
 interface SearchParams {
@@ -34,7 +33,6 @@ export default async function DashboardPage({
 
     const { category = "general" } = await searchParams;
     const articles = await getNews(category);
-    const cronEnabled = await getCronStatus();
 
     const categories = [
         "general",
@@ -75,11 +73,10 @@ export default async function DashboardPage({
                         <label>ACTIVE CATEGORY</label>
                         <span className="cat-badge">{category.toUpperCase()}</span>
                     </div>
-                    <CronToggle initialStatus={cronEnabled} />
-                    <div className="status-item">
-                        <label>ADMIN ACCESS</label>
-                        <span>AUTHORIZED</span>
-                    </div>
+                </div>
+
+                <div className="sync-section">
+                    <ManualSync />
                 </div>
 
                 <nav className="dashboard-cat-nav">
