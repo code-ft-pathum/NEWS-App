@@ -6,7 +6,14 @@ if (admin.apps.length === 0) {
 
     try {
         if (serviceAccountRaw) {
-            const serviceAccount = JSON.parse(serviceAccountRaw);
+            // Strip any surrounding single or double quotes added by .env parsers
+            let cleanRaw = serviceAccountRaw.trim();
+            if ((cleanRaw.startsWith("'") && cleanRaw.endsWith("'")) ||
+                (cleanRaw.startsWith('"') && cleanRaw.endsWith('"'))) {
+                cleanRaw = cleanRaw.slice(1, -1);
+            }
+
+            const serviceAccount = JSON.parse(cleanRaw);
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
             });
