@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getNews } from "@/lib/news";
 import DashboardGrid from "@/components/DashboardGrid";
 import Link from "next/link";
+import AutomationToggle from "@/components/AutomationToggle";
 
 interface SearchParams {
     category?: string;
@@ -68,6 +69,7 @@ export default async function DashboardPage({
                         <label>ACTIVE CATEGORY</label>
                         <span className="cat-badge">{category.toUpperCase()}</span>
                     </div>
+                    <AutomationToggle />
                     <div className="status-item">
                         <label>ADMIN ACCESS</label>
                         <span>AUTHORIZED</span>

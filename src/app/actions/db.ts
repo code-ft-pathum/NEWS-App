@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, Timestamp, doc, setDoc, getDoc } from "firebase/firestore";
 
 export async function checkIsPublished(url: string) {
     try {
@@ -34,5 +34,28 @@ export async function getPublishedPosts() {
     } catch (error) {
         console.error("Error fetching Firestore collection:", error);
         return [];
+    }
+}
+
+export async function getAutomationSettings() {
+    try {
+        const settingsDoc = await getDoc(doc(db, "settings", "automation"));
+        return settingsDoc.exists() ? settingsDoc.data() : { enabled: false };
+    } catch (error) {
+        console.error("Error fetching automation settings:", error);
+        return { enabled: false };
+    }
+}
+
+export async function updateAutomationSettings(enabled: boolean) {
+    try {
+        await setDoc(doc(db, "settings", "automation"), {
+            enabled,
+            updatedAt: Timestamp.now()
+        }, { merge: true });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating automation:", error);
+        return { success: false };
     }
 }

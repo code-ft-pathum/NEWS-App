@@ -11,6 +11,23 @@ export const metadata: Metadata = {
   description: "A premium, lightning-fast news reader powered by AI.",
   keywords: ["news", "latest", "technology", "news viewer", "next.js"],
   authors: [{ name: "News Today Team" }],
+  verification: {
+    google: "qRQ4bNmp5tZqAdnpnWTBDRBY9isLJ8w-OufkJ0fFgV4",
+  },
+  alternates: {
+    canonical: "https://today-news-pathum.vercel.app/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   icons: {
     icon: [
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
@@ -53,6 +70,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "NewsMediaOrganization",
+              "name": "News Today",
+              "url": "https://today-news-pathum.vercel.app/",
+              "logo": "https://today-news-pathum.vercel.app/android-chrome-512x512.png",
+              "sameAs": [
+                "https://www.facebook.com/NewsTodayPathum"
+              ]
+            })
+          }}
+        />
         <header className="header">
           <div className="container header-content">
             <div className="logo slide-in">
