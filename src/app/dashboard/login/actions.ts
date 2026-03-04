@@ -11,20 +11,18 @@ export async function handleLogin(username: string, password: string) {
         return { success: false, error: "Invalid credentials. Access Denied." };
     }
 
-    try {
-        const cookieStore = await cookies();
-        cookieStore.set("auth", "admin-secret", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: "/",
-        });
-        return { success: true };
-    } catch (error: any) {
-        console.error("[Auth] Cookie set failed:", error.message);
-        return { success: false, error: "Failed to authenticate. Please try again." };
-    }
+    // Set cookie first, then redirect — both happen in the same server response
+    const cookieStore = await cookies();
+    cookieStore.set("auth", "admin-secret", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: "/",
+    });
+
+    // Server-side redirect — cookie is already in the response headers
+    redirect("/dashboard");
 }
 
 export async function handleLogout() {

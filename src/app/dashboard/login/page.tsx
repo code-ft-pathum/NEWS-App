@@ -17,17 +17,20 @@ export default function LoginPage() {
         const password = formData.get("password") as string;
 
         try {
+            // handleLogin either redirects (throws NEXT_REDIRECT) or returns an error object
             const result = await handleLogin(username, password);
-            if (result?.success) {
-                // Hard redirect so the browser picks up the new auth cookie
-                window.location.href = "/dashboard";
-            } else {
-                setError(result?.error || "Invalid credentials.");
-                setLoading(false);
+            // Only reaches here if login failed (no redirect thrown)
+            setError(result?.error || "Invalid credentials.");
+            setLoading(false);
+        } catch (err: any) {
+            // NEXT_REDIRECT is thrown by redirect() — this is a success, not an error.
+            // Let Next.js handle the navigation — DO NOT setError here.
+            if (err?.digest?.startsWith("NEXT_REDIRECT")) {
+                // Navigation is in progress, keep loading state
+                return;
             }
-        } catch {
-            // Next.js NEXT_REDIRECT throws — this means login succeeded, redirect is in progress
-            window.location.href = "/dashboard";
+            setError("An unexpected error occurred. Please try again.");
+            setLoading(false);
         }
     }
 
@@ -46,7 +49,6 @@ export default function LoginPage() {
                             type="text"
                             name="username"
                             placeholder="Username..."
-                            defaultValue=""
                             disabled={loading}
                             required
                             autoComplete="username"
