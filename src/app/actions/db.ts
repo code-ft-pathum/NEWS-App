@@ -15,7 +15,12 @@ export async function checkIsPublished(url: string): Promise<boolean> {
     }
 }
 
-export async function saveToPublished(article: { title: string; url: string; fbPostId: string }) {
+export async function saveToPublished(article: {
+    title: string;
+    url: string;
+    fbPostId: string;
+    category?: string;
+}) {
     try {
         const db = getAdminDb();
         await db.collection("posts").add({
@@ -44,12 +49,31 @@ export async function getPublishedPosts() {
     }
 }
 
-// ── Automation (simple collection: "automation" → doc "status") ───────────────
-// Firestore structure:
-//   Collection: automation
-//   Document:   status
-//   Fields:     enabled (boolean), updatedAt (Timestamp),
-//               lastRunAt (Timestamp), lastRunStatus (string), lastRunMessage (string)
+// Delete posts older than 30 days to keep the DB clean
+export async function cleanupOldPosts(): Promise<{ success: boolean; deleted?: number; error?: string }> {
+    try {
+        const db = getAdminDb();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const cutoff = admin.firestore.Timestamp.fromDate(thirtyDaysAgo);
+
+        const snap = await db.collection("posts")
+            .where("publishedAt", "<", cutoff)
+            .get();
+
+        const batch = db.batch();
+        snap.docs.forEach((doc: any) => batch.delete(doc.ref));
+        await batch.commit();
+
+        return { success: true, deleted: snap.size };
+    } catch (err: any) {
+        console.error("cleanupOldPosts error:", err.message);
+        return { success: false, deleted: 0, error: err.message };
+    }
+}
+
+// ── Automation (Collection: "automation" → Doc: "status") ────────────────────
+// Fields: enabled (boolean), updatedAt, lastRunAt, lastRunStatus, lastRunMessage
 
 export async function getAutomationSettings() {
     try {
@@ -58,13 +82,12 @@ export async function getAutomationSettings() {
         const snap = await ref.get();
 
         if (!snap.exists) {
-            // Bootstrap with disabled state so the collection is created immediately
+            // Auto-create on first load so the collection appears in Firebase immediately
             await ref.set({ enabled: false, updatedAt: admin.firestore.Timestamp.now() });
             return { enabled: false };
         }
 
         const data = snap.data()!;
-        // Serialize Timestamps → ISO strings so Next.js can pass them to client components
         return {
             enabled: data.enabled ?? false,
             updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? null,
@@ -75,6 +98,16 @@ export async function getAutomationSettings() {
     } catch (err: any) {
         console.error("getAutomationSettings error:", err.message);
         return { enabled: false, error: err.message };
+    }
+}
+
+// Used by cron.ts — returns just the boolean
+export async function getCronStatus(): Promise<boolean> {
+    try {
+        const settings = await getAutomationSettings();
+        return settings?.enabled ?? false;
+    } catch {
+        return false;
     }
 }
 
