@@ -41,7 +41,8 @@ export async function publishToFacebook(article: { title: string, url: string, d
         throw new Error("Missing Facebook Page ID or Access Token. Access Denied.");
     }
 
-    const message = `${article.title}\n\n${article.description || ""}\n\nRead more at: ${article.url}`;
+    const backlink = "https://today-news-pathum.vercel.app/";
+    const message = `${article.title}\n\n${article.description || ""}\n\nRead more at: ${article.url}\n\nShared via ${backlink}`;
 
     try {
         // Exchange User Token for Page Token if we have a User Token

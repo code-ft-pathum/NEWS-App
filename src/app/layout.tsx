@@ -22,6 +22,27 @@ export const metadata: Metadata = {
     ],
   },
   manifest: "/site.webmanifest",
+  openGraph: {
+    title: "News Today • Global Perspective",
+    description: "Breaking news and deep dives from across the globe, delivered with premium AI precision.",
+    url: "https://today-news-pathum.vercel.app/",
+    siteName: "News Today",
+    images: [
+      {
+        url: "/android-chrome-512x512.png",
+        width: 512,
+        height: 512,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "News Today • Stay Ahead of the Curve",
+    description: "The world's most advanced news reader.",
+    images: ["/android-chrome-512x512.png"],
+  },
 };
 
 export default function RootLayout({
@@ -38,10 +59,8 @@ export default function RootLayout({
               <a href="/">NEWS <span>TODAY</span></a>
             </div>
             <nav className="header-nav fade-in">
-              <a href="/dashboard" className="nav-link">DASHBOARD</a>
-              <span className="separator">|</span>
               <span className="header-meta">
-                Premium News Experience
+                Global News Experience • Premium AI Feed
               </span>
             </nav>
           </div>
