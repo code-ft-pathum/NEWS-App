@@ -47,12 +47,15 @@ export async function getAutomationSettings() {
     }
 }
 
-export async function updateAutomationSettings(enabled: boolean) {
+export async function updateAutomationSettings(enabled: boolean, lastRun?: { status: string, timestamp: Timestamp, message?: string }) {
     try {
-        await setDoc(doc(db, "settings", "automation"), {
-            enabled,
-            updatedAt: Timestamp.now()
-        }, { merge: true });
+        const data: any = { enabled, updatedAt: Timestamp.now() };
+        if (lastRun) {
+            data.lastRunAt = lastRun.timestamp;
+            data.lastRunStatus = lastRun.status;
+            data.lastRunMessage = lastRun.message;
+        }
+        await setDoc(doc(db, "settings", "automation"), data, { merge: true });
         return { success: true };
     } catch (error) {
         console.error("Error updating automation:", error);

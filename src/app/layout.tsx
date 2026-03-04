@@ -69,6 +69,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+      </head>
       <body>
         <script
           type="application/ld+json"
@@ -105,91 +108,6 @@ export default function RootLayout({
             <p>&copy; {new Date().getFullYear()} News Today. Fueled by NewsAPI.org</p>
           </div>
         </footer>
-
-        <style dangerouslySetInnerHTML={{
-          __html: `
-          .header {
-            position: sticky;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: var(--header-height);
-            background: rgba(8, 8, 8, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--card-border);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-          }
-
-          .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-
-          .header-nav {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-          }
-
-          .nav-link {
-            font-size: 0.75rem;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: var(--muted);
-            transition: all 0.3s ease;
-          }
-
-          .nav-link:hover {
-             color: var(--primary);
-             text-shadow: 0 0 10px rgba(255, 62, 62, 0.4);
-          }
-
-          .separator {
-            color: var(--card-border);
-          }
-
-          .logo {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--primary);
-            letter-spacing: -1px;
-          }
-
-          .logo span {
-            color: white;
-            opacity: 0.9;
-          }
-
-          .header-meta {
-            color: var(--muted);
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 2px;
-          }
-
-          .main-content {
-            min-height: calc(100vh - var(--header-height) - 100px);
-            padding: 3rem 0;
-          }
-
-          .footer {
-            padding: 3rem 0;
-            text-align: center;
-            border-top: 1px solid var(--card-border);
-            color: var(--muted);
-            font-size: 0.85rem;
-          }
-
-          @media (max-width: 600px) {
-            .header-meta {
-              display: none;
-            }
-          }
-        `}} />
       </body>
     </html>
   );

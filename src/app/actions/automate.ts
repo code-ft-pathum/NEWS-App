@@ -2,7 +2,8 @@
 
 import { getNews } from "@/lib/news";
 import { publishToFacebook } from "./facebook";
-import { checkIsPublished, saveToPublished, getAutomationSettings } from "./db";
+import { checkIsPublished, saveToPublished, getAutomationSettings, updateAutomationSettings } from "./db";
+import { Timestamp } from "firebase/firestore";
 
 export async function triggerAutomation() {
     console.log("Starting automation trigger...");
@@ -15,12 +16,17 @@ export async function triggerAutomation() {
     }
 
     try {
-        // 2. Fetch fresh news (general category for broad reach)
+        // 2. Fetch fresh news
         const categories = ["general", "technology", "business", "science"];
         const randomCategory = categories[Math.floor(Math.random() * categories.length)];
         const articles = await getNews(randomCategory);
 
         if (!articles || articles.length === 0) {
+            await updateAutomationSettings(true, {
+                status: "error",
+                timestamp: Timestamp.now(),
+                message: "No news found from API"
+            });
             return { success: false, message: "No news found" };
         }
 
@@ -35,12 +41,15 @@ export async function triggerAutomation() {
         }
 
         if (!targetArticle) {
-            console.log("All fetched articles already published.");
+            await updateAutomationSettings(true, {
+                status: "idle",
+                timestamp: Timestamp.now(),
+                message: "All fetched articles already published"
+            });
             return { success: false, message: "No new articles to post" };
         }
 
         // 4. Publish to Facebook
-        console.log(`Publishing automated post: ${targetArticle.title}`);
         const result = await publishToFacebook({
             title: targetArticle.title,
             url: targetArticle.url,
@@ -49,18 +58,35 @@ export async function triggerAutomation() {
         });
 
         if (result.success) {
-            // 5. Save to history
+            // 5. Save to history and update automation status
             await saveToPublished({
                 title: targetArticle.title,
                 url: targetArticle.url,
                 fbPostId: result.postId
             });
+
+            await updateAutomationSettings(true, {
+                status: "success",
+                timestamp: Timestamp.now(),
+                message: `Posted: ${targetArticle.title}`
+            });
+
             return { success: true, postId: result.postId };
         }
 
+        await updateAutomationSettings(true, {
+            status: "error",
+            timestamp: Timestamp.now(),
+            message: "FB API returned failure"
+        });
         return { success: false, message: "FB Publish failed" };
     } catch (error: any) {
         console.error("Automation error:", error);
+        await updateAutomationSettings(true, {
+            status: "error",
+            timestamp: Timestamp.now(),
+            message: error.message
+        });
         return { success: false, error: error.message };
     }
 }
