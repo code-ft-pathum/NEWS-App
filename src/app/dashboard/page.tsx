@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getNews } from "@/lib/news";
+import { handleLogout } from "./login/actions";
 import DashboardGrid from "@/components/DashboardGrid";
 import ManualSync from "@/components/ManualSync";
 import Link from "next/link";
@@ -17,19 +18,10 @@ export default async function DashboardPage({
     const cookieStore = await cookies();
     const authCookie = cookieStore.get("auth");
 
-    console.log("[Dashboard] Accessing dashboard");
-    console.log("[Dashboard] All cookies:", Array.from(cookieStore.getAll()).map(c => ({ name: c.name, value: c.value })));
-    console.log("[Dashboard] Auth cookie exists:", !!authCookie);
-    console.log("[Dashboard] Auth cookie value:", authCookie?.value);
-    console.log("[Dashboard] Cookie comparison:", authCookie?.value, "===", "admin-secret", "?", authCookie?.value === "admin-secret");
-
-    // Primitive auth check
+    // Auth check
     if (authCookie?.value !== "admin-secret") {
-        console.log("[Dashboard] No valid auth cookie, redirecting to login");
         redirect("/dashboard/login");
     }
-
-    console.log("[Dashboard] Authorization successful, loading dashboard");
 
     const { category = "general" } = await searchParams;
     const articles = await getNews(category);
@@ -55,7 +47,7 @@ export default async function DashboardPage({
                     <a href="/" className="back-link">
                         <i className="fa-solid fa-arrow-left"></i> BACK TO GRID
                     </a>
-                    <form method="POST" action="/api/auth/logout">
+                    <form action={handleLogout}>
                         <button type="submit" className="logout-btn">
                             <i className="fa-solid fa-power-off"></i> TERMINATE SESSION
                         </button>

@@ -1,11 +1,35 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useState } from "react";
+import { handleLogin } from "./actions";
 
-function LoginForm() {
-    const searchParams = useSearchParams();
-    const error = searchParams.get("error");
+export default function LoginPage() {
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
+
+        const formData = new FormData(e.currentTarget);
+        const username = formData.get("username") as string;
+        const password = formData.get("password") as string;
+
+        try {
+            const result = await handleLogin(username, password);
+            if (result.success) {
+                // Force a hard reload to ensure cookies are read correctly by Next.js
+                window.location.href = "/dashboard";
+            } else {
+                setError(result.error || "Invalid credentials.");
+                setLoading(false);
+            }
+        } catch (err) {
+            setError("Something went wrong.");
+            setLoading(false);
+        }
+    }
 
     return (
         <div className="login-container fade-in">
@@ -15,9 +39,7 @@ function LoginForm() {
                     <p className="subtitle">RESTRICTED TERMINAL</p>
                 </div>
 
-                {/* Plain HTML form → POST to /api/auth/login route handler */}
-                {/* This is the most reliable way to set cookies in Next.js */}
-                <form method="POST" action="/api/auth/login" className="login-form">
+                <form onSubmit={onSubmit} className="login-form">
                     <div className="input-group">
                         <label>IDENTIFIER</label>
                         <input
@@ -25,7 +47,6 @@ function LoginForm() {
                             name="username"
                             placeholder="Username..."
                             required
-                            autoComplete="username"
                         />
                     </div>
                     <div className="input-group">
@@ -35,25 +56,16 @@ function LoginForm() {
                             name="password"
                             placeholder="••••••••"
                             required
-                            autoComplete="current-password"
                         />
                     </div>
-                    {error === "invalid" && (
-                        <p className="login-error">Invalid credentials. Access Denied.</p>
+                    {error && (
+                        <p className="login-error">{error}</p>
                     )}
-                    <button type="submit" className="login-btn">
-                        AUTHORIZE SESSION
+                    <button type="submit" className="login-btn" disabled={loading}>
+                        {loading ? "AUTHENTICATING..." : "AUTHORIZE SESSION"}
                     </button>
                 </form>
             </div>
         </div>
-    );
-}
-
-export default function LoginPage() {
-    return (
-        <Suspense>
-            <LoginForm />
-        </Suspense>
     );
 }

@@ -101,15 +101,7 @@ export async function getAutomationSettings() {
     }
 }
 
-// Used by cron.ts — returns just the boolean
-export async function getCronStatus(): Promise<boolean> {
-    try {
-        const settings = await getAutomationSettings();
-        return settings?.enabled ?? false;
-    } catch {
-        return false;
-    }
-}
+
 
 export async function updateAutomationSettings(
     enabled: boolean,
@@ -134,10 +126,4 @@ export async function updateAutomationSettings(
     }
 }
 
-// Toggle automation on/off — used by CronToggle component
-export async function toggleCronStatus(): Promise<boolean> {
-    const current = await getAutomationSettings();
-    const newEnabled = !current.enabled;
-    await updateAutomationSettings(newEnabled);
-    return newEnabled;
-}
+
