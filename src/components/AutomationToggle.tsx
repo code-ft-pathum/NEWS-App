@@ -1,80 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getAutomationSettings, updateAutomationSettings } from "@/app/actions/db";
+import { useState } from "react";
+import { toggleAutomationStatus } from "@/app/actions/db";
 
-export default function AutomationToggle() {
-    const [status, setStatus] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        async function loadSettings() {
-            const settings = await getAutomationSettings();
-            if (settings.error) {
-                setError(settings.error);
-            }
-            setStatus(settings || { enabled: false });
-            setLoading(false);
-        }
-        loadSettings();
-    }, []);
+export default function AutomationToggle({ initialStatus }: { initialStatus: boolean }) {
+    const [status, setStatus] = useState(initialStatus);
+    const [loading, setLoading] = useState(false);
 
     const handleToggle = async () => {
         setLoading(true);
-        setError(null);
-        const newEnabled = !status?.enabled;
-        const result = await updateAutomationSettings(newEnabled);
-        if (result.success) {
-            setStatus((prev: any) => ({ ...prev, enabled: newEnabled }));
-        } else {
-            setError(result.error || "Failed to update settings");
+        try {
+            const newStatus = await toggleAutomationStatus();
+            setStatus(newStatus);
+        } catch (error) {
+            console.error("Toggle error:", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
-    if (loading && !status) return <div className="automation-loading">SYNCHRONIZING...</div>;
-
-    const enabled = status?.enabled;
-
     return (
-        <div className="automation-control status-item">
-            <label>AUTO-PILOT MODE</label>
-            <div className="toggle-wrapper">
-                <button
-                    onClick={handleToggle}
-                    className={`toggle-btn ${enabled ? 'active' : ''}`}
-                    disabled={loading}
-                >
-                    <div className="toggle-slider"></div>
-                    <span className="toggle-text">{enabled ? "ENGAGED" : "OFFLINE"}</span>
-                </button>
-                {error && <p className="automation-error fade-in">{error}</p>}
-                <p className="automation-hint">
-                    {enabled
-                        ? "System is posting news to Facebook at synchronized intervals."
-                        : "Manual mode active. Automation is suspended."}
-                </p>
-                {status?.lastRunAt && (
-                    <div className="last-run-info">
-                        <label>SIGNAL STATUS</label>
-                        <span className={`status-text ${status.lastRunStatus}`}>
-                            {status.lastRunStatus?.toUpperCase()}
-                            {status.lastRunMessage && ` - ${status.lastRunMessage}`}
-                        </span>
-                    </div>
-                )}
-                {enabled && (
-                    <a
-                        href="/api/cron/post-news"
-                        target="_blank"
-                        className="manual-trigger-link"
-                    >
-                        [ FORCE SYNC NOW ]
-                    </a>
-                )}
-            </div>
-
+        <div className="automation-toggle">
+            <h2>AUTO-PILOT MODE</h2>
+            <button 
+                onClick={handleToggle} 
+                disabled={loading}
+                className={`status-btn ${status ? 'engaged' : 'offline'}`}
+            >
+                {status ? '✓ ENGAGED' : '⊗ OFFLINE'}
+            </button>
+            <p className="status-text">
+                {status 
+                    ? 'Automation is active. Posts will be published automatically.' 
+                    : 'Manual mode active. Automation is suspended.'}
+            </p>
         </div>
     );
 }

@@ -1,0 +1,307 @@
+.cron-toggle-wrapper {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.cron-toggle-wrapper:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Header Section */
+.cron-toggle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.cron-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+/* Toggle Control */
+.toggle-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #d1d5db;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    padding: 0;
+    outline: none;
+}
+
+.toggle-switch:hover {
+    background: #bfdbfe;
+}
+
+.toggle-switch.active {
+    background: #10b981;
+}
+
+.toggle-switch.active:hover {
+    background: #059669;
+}
+
+.toggle-knob {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch.active .toggle-knob {
+    left: calc(100% - 22px);
+}
+
+.status-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    min-width: 70px;
+    text-align: right;
+}
+
+.status-text.enabled {
+    color: #10b981;
+}
+
+.status-text.disabled {
+    color: #6b7280;
+}
+
+/* Schedule Section */
+.cron-schedule-section {
+    margin: 12px 0;
+}
+
+.schedule-toggle-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.schedule-toggle-btn:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.schedule-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+.chevron {
+    display: inline-block;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+}
+
+.chevron.open {
+    transform: rotate(180deg);
+}
+
+/* Schedule Details */
+.schedule-details {
+    margin-top: 10px;
+    padding: 12px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.schedule-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.schedule-item:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.schedule-item .time {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.schedule-item .label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-align: center;
+    margin-top: 2px;
+}
+
+.schedule-item .label.inactive {
+    color: #d1d5db;
+}
+
+.schedule-note {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin: 0;
+    padding: 0 4px;
+    text-align: center;
+}
+
+/* Status Indicator */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #f0fdf4;
+    border: 1px solid #dcfce7;
+    border-radius: 6px;
+    margin-top: 12px;
+}
+
+.status-indicator.active {
+    background: #f0fdf4;
+    border-color: #dcfce7;
+}
+
+.status-indicator:not(.active) {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.status-indicator .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+}
+
+.status-indicator:not(.active) .dot {
+    background: #d1d5db;
+}
+
+.status-indicator.active .dot {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.status-msg {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #10b981;
+}
+
+.status-indicator:not(.active) .status-msg {
+    color: #6b7280;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .cron-toggle-wrapper {
+        padding: 12px;
+    }
+
+    .cron-toggle-header {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+    }
+
+    .cron-label {
+        font-size: 0.85rem;
+    }
+
+    .toggle-switch {
+        width: 40px;
+        height: 22px;
+    }
+
+    .toggle-knob {
+        width: 18px;
+        height: 18px;
+    }
+
+    .toggle-switch.active .toggle-knob {
+        left: calc(100% - 20px);
+    }
+
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-item {
+        padding: 6px;
+    }
+
+    .schedule-item .time {
+        font-size: 0.8rem;
+    }
+
+    .schedule-label {
+        font-size: 0.8rem;
+    }
+}

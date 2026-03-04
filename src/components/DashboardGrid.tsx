@@ -7,9 +7,10 @@ import { useState, useEffect } from "react";
 
 interface DashboardGridProps {
     articles: Article[];
+    category?: string;
 }
 
-export default function DashboardGrid({ articles: initialArticles }: DashboardGridProps) {
+export default function DashboardGrid({ articles: initialArticles, category = 'general' }: DashboardGridProps) {
     const [articles, setArticles] = useState<Article[]>(initialArticles);
     const [publishedUrls, setPublishedUrls] = useState<Set<string>>(new Set());
     const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
@@ -50,6 +51,8 @@ export default function DashboardGrid({ articles: initialArticles }: DashboardGr
         const finalDesc = editData[id]?.description || article.description;
 
         try {
+            // Step 1: Publish to Facebook
+            console.log("[Publish] Publishing to Facebook...");
             const result = await publishToFacebook({
                 title: finalTitle,
                 url: article.url,
@@ -57,20 +60,36 @@ export default function DashboardGrid({ articles: initialArticles }: DashboardGr
                 urlToImage: article.urlToImage,
             });
 
-            if (result.success) {
-                // Save to Firestore
-                await saveToPublished({
-                    title: finalTitle,
-                    url: article.url,
-                    fbPostId: result.postId
-                });
-
-                setPublishedUrls(prev => new Set([...prev, id]));
-                setSuccessMsg(`Successfully published! Post ID: ${result.postId}`);
-                setEditingArticle(null);
+            if (!result.success) {
+                setErrorMsg("Failed to publish to Facebook");
+                return;
             }
+
+            console.log("[Publish] Facebook published successfully, FB Post ID:", result.postId);
+
+            // Step 2: Save to Firebase
+            console.log("[Publish] Saving to Firebase...");
+            const dbResult = await saveToPublished({
+                title: finalTitle,
+                url: article.url,
+                fbPostId: result.postId,
+                category: category
+            });
+
+            if (!dbResult.success) {
+                setErrorMsg(`Published to Facebook but failed to save: ${dbResult.error}`);
+                return;
+            }
+
+            console.log("[Publish] Successfully saved to Firebase");
+            
+            // Step 3: Update UI
+            setPublishedUrls(prev => new Set([...prev, id]));
+            setSuccessMsg(`✓ Published & Saved! Post ID: ${result.postId}`);
+            setEditingArticle(null);
         } catch (error: any) {
-            setErrorMsg(error.message);
+            console.error("[Publish] Error:", error);
+            setErrorMsg(`Error: ${error.message}`);
         } finally {
             setLoadingIds(prev => ({ ...prev, [id]: false }));
         }

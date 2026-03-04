@@ -1,18 +1,46 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    return [
+    const baseUrl = 'https://today-news-pathum.vercel.app';
+    const categories = [
+        'general',
+        'business',
+        'technology',
+        'science',
+        'entertainment',
+        'health',
+        'sports',
+    ];
+
+    const now = new Date().toISOString().split('T')[0];
+
+    // Main sitemap entries
+    const mainEntries: MetadataRoute.Sitemap = [
         {
-            url: 'https://today-news-pathum.vercel.app',
-            lastModified: new Date(),
+            url: baseUrl,
+            lastModified: now,
             changeFrequency: 'hourly',
-            priority: 1,
+            priority: 1.0,
         },
+    ];
+
+    // Category page entries
+    const categoryEntries: MetadataRoute.Sitemap = categories.map((category) => ({
+        url: `${baseUrl}/?category=${category}`,
+        lastModified: now,
+        changeFrequency: 'hourly' as const,
+        priority: 0.9,
+    }));
+
+    // Dashboard entries
+    const dashboardEntries: MetadataRoute.Sitemap = [
         {
-            url: 'https://today-news-pathum.vercel.app/dashboard/login',
-            lastModified: new Date(),
+            url: `${baseUrl}/dashboard/login`,
+            lastModified: now,
             changeFrequency: 'monthly',
             priority: 0.3,
         },
-    ]
+    ];
+
+    return [...mainEntries, ...categoryEntries, ...dashboardEntries];
 }

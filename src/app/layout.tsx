@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./init";
 
 export const viewport = {
   width: "device-width",
@@ -80,10 +81,60 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "NewsMediaOrganization",
               "name": "News Today",
+              "alternateName": "News Today - The Future of News",
               "url": "https://today-news-pathum.vercel.app/",
               "logo": "https://today-news-pathum.vercel.app/android-chrome-512x512.png",
+              "description": "A premium, lightning-fast news reader powered by AI with coverage across technology, business, science, entertainment, health, and sports.",
               "sameAs": [
                 "https://www.facebook.com/NewsTodayPathum"
+              ],
+              "foundingDate": "2024",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "Customer Service",
+                "availableLanguage": ["en"]
+              },
+              "aggregateOffer": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "USD",
+                "price": "0",
+                "availability": "https://schema.org/InStock"
+              }
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "News Today",
+              "url": "https://today-news-pathum.vercel.app/",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": "https://today-news-pathum.vercel.app/?category={search_term_string}"
+                },
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              "itemListElement": [
+                {
+                  "@type": "ListItem",
+                  "position": 1,
+                  "name": "Home",
+                  "item": "https://today-news-pathum.vercel.app/"
+                }
               ]
             })
           }}
@@ -91,21 +142,21 @@ export default function RootLayout({
         <header className="header">
           <div className="container header-content">
             <div className="logo slide-in">
-              <a href="/">NEWS <span>TODAY</span></a>
+              <a href="/" title="News Today - Home">NEWS <span>TODAY</span></a>
             </div>
-            <nav className="header-nav fade-in">
+            <nav className="header-nav fade-in" aria-label="Main navigation">
               <span className="header-meta">
                 Global News Experience • Premium AI Feed
               </span>
             </nav>
           </div>
         </header>
-        <main className="main-content">
+        <main className="main-content" role="main">
           {children}
         </main>
-        <footer className="footer">
+        <footer className="footer" role="contentinfo">
           <div className="container">
-            <p>&copy; {new Date().getFullYear()} News Today. Fueled by NewsAPI.org</p>
+            <p>&copy; {new Date().getFullYear()} News Today. All rights reserved. Powered by <a href="https://newsapi.org" target="_blank" rel="noopener noreferrer">NewsAPI.org</a></p>
           </div>
         </footer>
       </body>

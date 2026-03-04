@@ -2,92 +2,101 @@
 
 import { getAdminDb, admin } from "@/lib/firebase-admin";
 
-export async function checkIsPublished(url: string) {
+// ── Posts ─────────────────────────────────────────────────────────────────────
+
+export async function checkIsPublished(url: string): Promise<boolean> {
     try {
-        const adminDb = getAdminDb();
-        const snapshot = await adminDb.collection("posts")
-            .where("url", "==", url)
-            .limit(1)
-            .get();
-        return !snapshot.empty;
-    } catch (error: any) {
-        console.error("SECURE_DB_CHECK_ERROR:", error.message);
+        const db = getAdminDb();
+        const snap = await db.collection("posts").where("url", "==", url).limit(1).get();
+        return !snap.empty;
+    } catch (err: any) {
+        console.error("checkIsPublished error:", err.message);
         return false;
     }
 }
 
-export async function saveToPublished(article: { title: string, url: string, fbPostId: string }) {
+export async function saveToPublished(article: { title: string; url: string; fbPostId: string }) {
     try {
-        const adminDb = getAdminDb();
-        await adminDb.collection("posts").add({
+        const db = getAdminDb();
+        await db.collection("posts").add({
             ...article,
             publishedAt: admin.firestore.Timestamp.now(),
         });
         return { success: true };
-    } catch (error: any) {
-        console.error("SECURE_DB_SAVE_ERROR:", error.message);
-        return { success: false, error: error.message };
+    } catch (err: any) {
+        console.error("saveToPublished error:", err.message);
+        return { success: false, error: err.message };
     }
 }
 
 export async function getPublishedPosts() {
     try {
-        const adminDb = getAdminDb();
-        const snapshot = await adminDb.collection("posts")
-            .orderBy("publishedAt", "desc")
-            .get();
-        return snapshot.docs.map((doc: any) => ({
+        const db = getAdminDb();
+        const snap = await db.collection("posts").orderBy("publishedAt", "desc").get();
+        return snap.docs.map((doc: any) => ({
             id: doc.id,
             ...doc.data(),
-            publishedAt: doc.data().publishedAt?.toDate()?.toISOString()
+            publishedAt: doc.data().publishedAt?.toDate()?.toISOString(),
         }));
-    } catch (error: any) {
-        console.error("SECURE_DB_FETCH_POSTS_ERROR:", error.message);
+    } catch (err: any) {
+        console.error("getPublishedPosts error:", err.message);
         return [];
     }
 }
 
+// ── Automation (simple collection: "automation" → doc "status") ───────────────
+// Firestore structure:
+//   Collection: automation
+//   Document:   status
+//   Fields:     enabled (boolean), updatedAt (Timestamp),
+//               lastRunAt (Timestamp), lastRunStatus (string), lastRunMessage (string)
+
 export async function getAutomationSettings() {
     try {
-        const adminDb = getAdminDb();
-        const settingsRef = adminDb.collection("settings").doc("automation");
-        const settingsDoc = await settingsRef.get();
+        const db = getAdminDb();
+        const ref = db.collection("automation").doc("status");
+        const snap = await ref.get();
 
-        if (!settingsDoc.exists) {
-            console.log("No settings found. Bootstrapping Securely...");
-            const initial = { enabled: false, updatedAt: admin.firestore.Timestamp.now() };
-            await settingsRef.set(initial);
-            return { enabled: false, updatedAt: initial.updatedAt.toDate().toISOString() };
+        if (!snap.exists) {
+            // Bootstrap with disabled state so the collection is created immediately
+            await ref.set({ enabled: false, updatedAt: admin.firestore.Timestamp.now() });
+            return { enabled: false };
         }
 
-        const data = settingsDoc.data();
-        const serialized = { ...data };
-        if (data?.updatedAt) serialized.updatedAt = data.updatedAt.toDate().toISOString();
-        if (data?.lastRunAt) serialized.lastRunAt = data.lastRunAt.toDate().toISOString();
-
-        return serialized;
-    } catch (error: any) {
-        console.error("SECURE_DB_SETTINGS_ERROR:", error.message);
-        // Fallback for UI
-        return { enabled: false, error: error.message };
+        const data = snap.data()!;
+        // Serialize Timestamps → ISO strings so Next.js can pass them to client components
+        return {
+            enabled: data.enabled ?? false,
+            updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? null,
+            lastRunAt: data.lastRunAt?.toDate?.()?.toISOString?.() ?? null,
+            lastRunStatus: data.lastRunStatus ?? null,
+            lastRunMessage: data.lastRunMessage ?? null,
+        };
+    } catch (err: any) {
+        console.error("getAutomationSettings error:", err.message);
+        return { enabled: false, error: err.message };
     }
 }
 
-export async function updateAutomationSettings(enabled: boolean, lastRun?: { status: string, timestamp?: any, message?: string }) {
+export async function updateAutomationSettings(
+    enabled: boolean,
+    lastRun?: { status: string; message?: string }
+) {
     try {
-        const adminDb = getAdminDb();
-        const data: any = { enabled, updatedAt: admin.firestore.Timestamp.now() };
+        const db = getAdminDb();
+        const data: Record<string, any> = {
+            enabled,
+            updatedAt: admin.firestore.Timestamp.now(),
+        };
         if (lastRun) {
-            // If timestamp passed from client, it's already an object, but we prefer server time for logs
             data.lastRunAt = admin.firestore.Timestamp.now();
             data.lastRunStatus = lastRun.status;
-            data.lastRunMessage = lastRun.message;
+            data.lastRunMessage = lastRun.message ?? "";
         }
-
-        await adminDb.collection("settings").doc("automation").set(data, { merge: true });
+        await db.collection("automation").doc("status").set(data, { merge: true });
         return { success: true };
-    } catch (error: any) {
-        console.error("SECURE_DB_UPDATE_ERROR:", error.message);
-        return { success: false, error: error.message };
+    } catch (err: any) {
+        console.error("updateAutomationSettings error:", err.message);
+        return { success: false, error: err.message };
     }
 }
