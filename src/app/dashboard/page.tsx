@@ -92,7 +92,7 @@ export default async function DashboardPage({
         <div className="container fade-in">
             <div className="page-header dashboard-header">
                 <div className="title-section">
-                    <h1 className="title">COMMAND <span>CENTER</span></h1>
+                    <h1 className="title">COMMAND <span>CENTER</span> <span style={{ fontSize: '0.6rem', padding: '2px 6px', background: '#10b981', color: 'black', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '10px' }}>v2.1</span></h1>
                     <p className="subtitle">CONTROL PANEL • MANAGE THE NEWS FEED</p>
                 </div>
                 <div className="admin-actions">
