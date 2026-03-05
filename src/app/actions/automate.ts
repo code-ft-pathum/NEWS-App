@@ -1,17 +1,18 @@
 "use server";
 
-import { getNews } from "@/lib/news";
+import { getNews, Article } from "@/lib/news";
 import { publishToFacebook } from "./facebook";
 import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings } from "./db";
 
-export async function triggerAutomation() {
-    console.log("[Manual] Triggering news publication...");
+export async function triggerAutomation(categoryOverride?: string) {
+    console.log("[Automation] Triggering news publication...");
 
     try {
-        // Fetch fresh news
-        const categories = ["general", "technology", "business", "science"];
-        const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-        const articles = await getNews(randomCategory);
+        const categories = ["general", "technology", "business", "science", "entertainment", "health", "sports"];
+        const category = categoryOverride || categories[Math.floor(Math.random() * categories.length)];
+
+        console.log(`[Automation] Fetching from category: ${category}`);
+        const articles = await getNews(category);
 
         if (!articles || articles.length === 0) {
             return { success: false, message: "No news found from API" };
@@ -49,9 +50,62 @@ export async function triggerAutomation() {
 
         return { success: false, message: "Facebook publish failed" };
     } catch (error: any) {
-        console.error("[Manual] Error:", error);
+        console.error("[Automation] Error:", error);
         return { success: false, error: error.message };
     }
+}
+
+/**
+ * Manually sync unposted articles across all categories.
+ * Limit to 10 articles total to prevent rate limits.
+ */
+export async function syncAllCategories() {
+    console.log("[ManualSync] Bulk syncing all categories...");
+    const categories = ["general", "technology", "business", "science", "entertainment", "health", "sports"];
+    let results = [];
+    let totalSynced = 0;
+
+    for (const cat of categories) {
+        if (totalSynced >= 10) break; // Safety cap
+
+        const articles = await getNews(cat);
+        const urls = articles.map(a => a.url);
+        const publishedUrls = await checkBulkPublished(urls);
+        const publishedSet = new Set(publishedUrls);
+
+        const unposted = articles.filter(a => !publishedSet.has(a.url));
+
+        for (const article of unposted) {
+            if (totalSynced >= 10) break;
+
+            console.log(`[ManualSync] Posting: ${article.title} (${cat})`);
+            const res = await publishToFacebook({
+                title: article.title,
+                url: article.url,
+                description: article.description,
+                urlToImage: article.urlToImage
+            });
+
+            if (res.success) {
+                await saveToPublished({
+                    title: article.title,
+                    url: article.url,
+                    fbPostId: res.postId,
+                    category: cat
+                });
+                results.push(`✓ ${article.title}`);
+                totalSynced++;
+                // Wait 3 seconds per post to be safe
+                await new Promise(r => setTimeout(r, 3000));
+            }
+        }
+    }
+
+    return {
+        success: true,
+        message: totalSynced > 0 ? `Successfully synced ${totalSynced} articles.` : "No new articles found to sync.",
+        details: results
+    };
 }
 
 /**
@@ -62,8 +116,13 @@ export async function checkAndPassiveSync() {
     try {
         const settings = await getAutomationSettings();
 
-        // Cooldown: 4 hours (14400000 ms)
-        const cooldown = 4 * 60 * 60 * 1000;
+        // Skip if automation is disabled
+        if (!settings.enabled) {
+            return { success: false, message: "Automation is disabled" };
+        }
+
+        // Cooldown: 30 minutes (1800000 ms)
+        const cooldown = 30 * 60 * 1000;
         const lastRun = settings.lastRunAt ? new Date(settings.lastRunAt).getTime() : 0;
         const now = Date.now();
 
@@ -91,4 +150,11 @@ export async function checkAndPassiveSync() {
         console.error("[PassiveSync] Error:", error.message);
         return { success: false, error: error.message };
     }
+}
+
+export async function toggleAutomationStatus() {
+    const settings = await getAutomationSettings();
+    const newStatus = !settings.enabled;
+    await updateAutomationSettings(newStatus);
+    return newStatus;
 }
