@@ -37,13 +37,6 @@ export async function GET() {
   </url>`
     )
     .join('\n')}
-  <!-- Dashboard -->
-  <url>
-    <loc>${baseUrl}/dashboard/login</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
 </urlset>`;
 
     return new NextResponse(xml, {

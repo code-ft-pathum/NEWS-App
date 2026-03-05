@@ -32,15 +32,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: 0.9,
     }));
 
-    // Dashboard entries
-    const dashboardEntries: MetadataRoute.Sitemap = [
-        {
-            url: `${baseUrl}/dashboard/login`,
-            lastModified: now,
-            changeFrequency: 'monthly',
-            priority: 0.3,
-        },
-    ];
-
-    return [...mainEntries, ...categoryEntries, ...dashboardEntries];
+    return [...mainEntries, ...categoryEntries];
 }

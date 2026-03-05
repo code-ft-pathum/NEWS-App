@@ -38,9 +38,15 @@ export async function getNews(category: string = "general"): Promise<Article[]> 
             // If the user REALLY wants BBC only, they can add it back, but category + sources is bugged in V2
         });
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
         const response = await fetch(`${API_URL}/top-headlines?${params.toString()}`, {
-            cache: 'no-store' // Keep it fresh
+            cache: 'no-store',
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`API Error: ${response.status} ${response.statusText}`);
