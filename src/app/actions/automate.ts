@@ -2,7 +2,7 @@
 
 import { getNews, Article } from "@/lib/news";
 import { publishToFacebook } from "./facebook";
-import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings } from "./db";
+import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings, logSyncSession } from "./db";
 
 export async function triggerAutomation(categoryOverride?: string) {
     console.log("[Automation] Triggering news publication...");
@@ -101,11 +101,22 @@ export async function syncAllCategories() {
         }
     }
 
-    return {
+    const summary = {
         success: true,
         message: totalSynced > 0 ? `Successfully synced ${totalSynced} articles.` : "No new articles found to sync.",
         details: results
     };
+
+    // Save sync session to Firebase history
+    await logSyncSession({
+        type: "manual",
+        status: totalSynced > 0 ? "success" : "no_updates",
+        syncedCount: totalSynced,
+        articles: results,
+        message: summary.message
+    });
+
+    return summary;
 }
 
 /**
@@ -143,6 +154,14 @@ export async function checkAndPassiveSync() {
         await updateAutomationSettings(settings.enabled || false, {
             status: result.success ? "success" : "failed",
             message: result.message || result.error || ""
+        });
+
+        // Save session to history
+        await logSyncSession({
+            type: "passive",
+            status: result.success ? "success" : "failed",
+            syncedCount: result.success ? 1 : 0,
+            articles: result.success && result.message ? [result.message] : [],
         });
 
         return result;

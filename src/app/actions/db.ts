@@ -170,4 +170,24 @@ export async function updateAutomationSettings(
     }
 }
 
+export async function logSyncSession(details: {
+    type: "manual" | "auto" | "passive";
+    status: string;
+    syncedCount: number;
+    articles?: string[];
+    message?: string;
+}) {
+    try {
+        const db = getAdminDb();
+        await db.collection("sync_history").add({
+            ...details,
+            timestamp: admin.firestore.Timestamp.now(),
+        });
+        return { success: true };
+    } catch (err: any) {
+        console.error("[DB] logSyncSession error:", err.message);
+        return { success: false, error: err.message };
+    }
+}
+
 
