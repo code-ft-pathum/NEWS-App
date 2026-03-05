@@ -2,7 +2,7 @@
 
 import { Article } from "@/lib/news";
 import { publishToFacebook } from "@/app/actions/facebook";
-import { checkIsPublished, saveToPublished } from "@/app/actions/db";
+import { checkBulkPublished, saveToPublished, testFirebaseConnection } from "@/app/actions/db";
 import { useState, useEffect } from "react";
 
 interface DashboardGridProps {
@@ -20,16 +20,29 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
 
     // Track local edits
     const [editData, setEditData] = useState<Record<string, { title: string, description: string }>>({});
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+        testFirebaseConnection().then(res => {
+            console.log("[DashboardGrid] Firebase Connection Test:", res);
+        });
+    }, []);
 
     useEffect(() => {
         const fetchStatus = async () => {
-            const urls = articles.map(a => a.url);
-            const statusMap: string[] = [];
-            for (const url of urls) {
-                const isPub = await checkIsPublished(url);
-                if (isPub) statusMap.push(url);
+            try {
+                const urls = articles.map(a => a.url);
+                if (urls.length === 0) return;
+
+                console.log("[DashboardGrid] Checking status for", urls.length, "articles");
+                const published = await checkBulkPublished(urls);
+                console.log("[DashboardGrid] Found", published.length, "already published");
+
+                setPublishedUrls(new Set(published));
+            } catch (err) {
+                console.error("[DashboardGrid] Error checking publication status:", err);
             }
-            setPublishedUrls(new Set(statusMap));
         };
         fetchStatus();
     }, [articles]);
@@ -82,7 +95,7 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
             }
 
             console.log("[Publish] Successfully saved to Firebase");
-            
+
             // Step 3: Update UI
             setPublishedUrls(prev => new Set([...prev, id]));
             setSuccessMsg(`✓ Published & Saved! Post ID: ${result.postId}`);
@@ -161,7 +174,9 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
                                         </>
                                     )}
 
-                                    <p className="published-at">{new Date(article.publishedAt).toLocaleString()}</p>
+                                    <p className="published-at">
+                                        {isMounted ? new Date(article.publishedAt).toLocaleString() : "Loading date..."}
+                                    </p>
                                 </div>
                             </div>
 

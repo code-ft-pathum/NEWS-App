@@ -10,8 +10,39 @@ export async function checkIsPublished(url: string): Promise<boolean> {
         const snap = await db.collection("posts").where("url", "==", url).limit(1).get();
         return !snap.empty;
     } catch (err: any) {
-        console.error("checkIsPublished error:", err.message);
-        return false;
+        console.error("[DB] checkIsPublished error:", err.message);
+        throw err; // Throw so we can see the error in caller
+    }
+}
+
+/**
+ * Bulk check publication status for a list of URLs
+ */
+export async function checkBulkPublished(urls: string[]): Promise<string[]> {
+    if (!urls || urls.length === 0) return [];
+
+    try {
+        const db = getAdminDb();
+        // Firestore 'in' operator supports up to 30 values.
+        // If urls > 30, we'd need to chunk it.
+        const chunks = [];
+        for (let i = 0; i < urls.length; i += 30) {
+            chunks.push(urls.slice(i, i + 30));
+        }
+
+        const publishedUrls: string[] = [];
+        for (const chunk of chunks) {
+            const snap = await db.collection("posts").where("url", "in", chunk).get();
+            snap.docs.forEach(doc => {
+                const data = doc.data();
+                if (data.url) publishedUrls.push(data.url);
+            });
+        }
+
+        return publishedUrls;
+    } catch (err: any) {
+        console.error("[DB] checkBulkPublished error:", err.message);
+        return [];
     }
 }
 
@@ -21,15 +52,28 @@ export async function saveToPublished(article: {
     fbPostId: string;
     category?: string;
 }) {
+    console.log("[DB] Attempting to save to 'posts' collection:", article.url);
     try {
         const db = getAdminDb();
-        await db.collection("posts").add({
+        const docRef = await db.collection("posts").add({
             ...article,
             publishedAt: admin.firestore.Timestamp.now(),
         });
+        console.log("[DB] Saved successfully with ID:", docRef.id);
         return { success: true };
     } catch (err: any) {
-        console.error("saveToPublished error:", err.message);
+        console.error("[DB] saveToPublished error:", err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function testFirebaseConnection() {
+    try {
+        const db = getAdminDb();
+        const snap = await db.collection("posts").limit(1).get();
+        return { success: true, count: snap.size, message: "Connected to Firestore successfully." };
+    } catch (err: any) {
+        console.error("[DB] testFirebaseConnection error:", err.message);
         return { success: false, error: err.message };
     }
 }

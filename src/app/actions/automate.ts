@@ -2,7 +2,7 @@
 
 import { getNews } from "@/lib/news";
 import { publishToFacebook } from "./facebook";
-import { checkIsPublished, saveToPublished } from "./db";
+import { checkBulkPublished, saveToPublished } from "./db";
 
 export async function triggerAutomation() {
     console.log("[Manual] Triggering news publication...");
@@ -17,15 +17,12 @@ export async function triggerAutomation() {
             return { success: false, message: "No news found from API" };
         }
 
-        // Find the first unpublished article
-        let targetArticle = null;
-        for (const article of articles) {
-            const alreadyPublished = await checkIsPublished(article.url);
-            if (!alreadyPublished) {
-                targetArticle = article;
-                break;
-            }
-        }
+        // Find the first unpublished article using bulk check
+        const urls = articles.map(a => a.url);
+        const publishedUrls = await checkBulkPublished(urls);
+        const publishedSet = new Set(publishedUrls);
+
+        const targetArticle = articles.find(article => !publishedSet.has(article.url));
 
         if (!targetArticle) {
             return { success: false, message: "All fetched articles already published" };
