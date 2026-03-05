@@ -65,15 +65,9 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  /* Redirects for SEO */
+  /* Redirects */
   redirects: async () => {
-    return [
-      {
-        source: "/dashboard",
-        destination: "/dashboard/login",
-        permanent: false,
-      },
-    ];
+    return [];
   },
 
   /* Rewrite for serving sitemap and robots */
