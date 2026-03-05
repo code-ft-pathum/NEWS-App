@@ -58,9 +58,9 @@ export default function NewsCard({ article, index }: NewsCardProps) {
                 itemScope
                 itemType="https://schema.org/NewsArticle"
             >
-                <a 
-                    href={article.url} 
-                    target="_blank" 
+                <a
+                    href={article.url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     itemProp="url"
                     title={`Read: ${article.title}`}
@@ -79,8 +79,27 @@ export default function NewsCard({ article, index }: NewsCardProps) {
                     </div>
                     <div className="card-content">
                         <div className="card-source" itemProp="author">{article.author || article.source.name}</div>
-                        <h3 className="card-title" itemProp="headline">{article.title}</h3>
-                        <p className="card-desc" itemProp="description">{article.description || "N/A"}</p>
+                        <h3 className="card-title" itemProp="headline">
+                            {article.title}
+                        </h3>
+                        <p className="card-desc" itemProp="description">
+                            {article.enhancedData ? (
+                                <>
+                                    {article.enhancedData.description} {article.enhancedData.emojis}
+                                </>
+                            ) : (
+                                article.description || "N/A"
+                            )}
+                        </p>
+
+                        {article.enhancedData && article.enhancedData.hashtags.length > 0 && (
+                            <div className="card-hashtags">
+                                {article.enhancedData.hashtags.map((tag, i) => (
+                                    <span key={i} className="tag-link">{tag}</span>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="card-meta">
                             <span itemProp="datePublished" content={publishedISO}>
                                 {publishedDate}

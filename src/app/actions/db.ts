@@ -51,6 +51,7 @@ export async function saveToPublished(article: {
     url: string;
     fbPostId: string;
     category?: string;
+    enhancedData?: string;
 }) {
     console.log("[DB] Attempting to save to 'posts' collection:", article.url);
     try {

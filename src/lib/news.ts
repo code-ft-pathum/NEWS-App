@@ -10,6 +10,11 @@ export interface Article {
     urlToImage: string | null;
     publishedAt: string;
     content: string | null;
+    enhancedData?: {
+        description: string;
+        hashtags: string[];
+        emojis: string;
+    };
 }
 
 export interface NewsResponse {
@@ -21,6 +26,8 @@ export interface NewsResponse {
 
 const API_KEY = process.env.NEWS_API_KEY;
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://newsapi.org/v2";
+
+import { enhanceArticle } from "./openrouter";
 
 export async function getNews(category: string = "general"): Promise<Article[]> {
     if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
@@ -34,12 +41,10 @@ export async function getNews(category: string = "general"): Promise<Article[]> 
             language: "en",
             apiKey: API_KEY,
             pageSize: "12",
-            // Removing sources=bbc-news to allow category filtering to work naturally
-            // If the user REALLY wants BBC only, they can add it back, but category + sources is bugged in V2
         });
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s for LLM
 
         const response = await fetch(`${API_URL}/top-headlines?${params.toString()}`, {
             cache: 'no-store',
@@ -58,7 +63,28 @@ export async function getNews(category: string = "general"): Promise<Article[]> 
             throw new Error(data.message || "API error occurred");
         }
 
-        return data.articles;
+        const articles = data.articles;
+
+        // Enhance only the first 4 articles to balance speed and richness
+        const processedArticles = await Promise.all(
+            articles.map(async (article, index) => {
+                const openRouterKey = process.env.OPENROUTER_API_KEY;
+                if (index < 4 && openRouterKey && openRouterKey !== 'YOUR_OPENROUTER_API_KEY_HERE' && openRouterKey !== '') {
+                    try {
+                        const enhanced = await enhanceArticle(article.title, article.description || "");
+                        return {
+                            ...article,
+                            enhancedData: enhanced
+                        };
+                    } catch (e) {
+                        return article;
+                    }
+                }
+                return article;
+            })
+        );
+
+        return processedArticles;
     } catch (error) {
         console.error("Error fetching news:", error);
         return getPlaceholderArticles(category);

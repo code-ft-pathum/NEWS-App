@@ -3,6 +3,7 @@
 import { getNews, Article } from "@/lib/news";
 import { publishToFacebook } from "./facebook";
 import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings, logSyncSession } from "./db";
+import { enhanceArticle } from "@/lib/openrouter";
 
 export async function triggerAutomation(categoryOverride?: string) {
     console.log("[Automation] Triggering news publication...");
@@ -29,12 +30,17 @@ export async function triggerAutomation(categoryOverride?: string) {
             return { success: false, message: "All fetched articles already published" };
         }
 
+        // AUTO-ENHANCE WITH AI
+        console.log(`[Automation] Enhancing article: ${targetArticle.title}`);
+        const enhanced = await enhanceArticle(targetArticle.title, targetArticle.description || "");
+
         // Publish to Facebook
         const result = await publishToFacebook({
             title: targetArticle.title,
             url: targetArticle.url,
             description: targetArticle.description,
             urlToImage: targetArticle.urlToImage,
+            enhancedData: enhanced
         });
 
         if (result.success) {
@@ -42,7 +48,8 @@ export async function triggerAutomation(categoryOverride?: string) {
             await saveToPublished({
                 title: targetArticle.title,
                 url: targetArticle.url,
-                fbPostId: result.postId
+                fbPostId: result.postId,
+                enhancedData: JSON.stringify(enhanced)
             });
 
             return { success: true, postId: result.postId, message: `Posted: ${targetArticle.title}` };
@@ -78,12 +85,16 @@ export async function syncAllCategories() {
         for (const article of unposted) {
             if (totalSynced >= 10) break;
 
+            console.log(`[ManualSync] Enhancing: ${article.title}`);
+            const enhanced = await enhanceArticle(article.title, article.description || "");
+
             console.log(`[ManualSync] Posting: ${article.title} (${cat})`);
             const res = await publishToFacebook({
                 title: article.title,
                 url: article.url,
                 description: article.description,
-                urlToImage: article.urlToImage
+                urlToImage: article.urlToImage,
+                enhancedData: enhanced
             });
 
             if (res.success) {
@@ -91,7 +102,8 @@ export async function syncAllCategories() {
                     title: article.title,
                     url: article.url,
                     fbPostId: res.postId,
-                    category: cat
+                    category: cat,
+                    enhancedData: JSON.stringify(enhanced)
                 });
                 results.push(`✓ ${article.title}`);
                 totalSynced++;
