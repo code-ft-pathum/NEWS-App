@@ -1,7 +1,7 @@
 import { getNews } from "@/lib/news";
 import DashboardGrid from "@/components/DashboardGrid";
 import ManualSync from "@/components/ManualSync";
-import CronToggle from "@/components/CronToggle";
+import AutomationControls from "@/components/AutomationControls";
 import Link from "next/link";
 import { cookies } from "next/headers";
 
@@ -120,7 +120,7 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="sync-section">
-                    <CronToggle />
+                    <AutomationControls />
                     <ManualSync />
                 </div>
 

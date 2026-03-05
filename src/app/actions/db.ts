@@ -51,6 +51,7 @@ export async function saveToPublished(article: {
     url: string;
     fbPostId: string;
     category?: string;
+    enhancedData?: string;
 }) {
     console.log("[DB] Attempting to save to 'posts' collection:", article.url);
     try {
@@ -138,6 +139,7 @@ export async function getAutomationSettings() {
             lastRunAt: data.lastRunAt?.toDate?.()?.toISOString?.() ?? null,
             lastRunStatus: data.lastRunStatus ?? null,
             lastRunMessage: data.lastRunMessage ?? null,
+            enhanceEnabled: data.enhanceEnabled ?? false,
         };
     } catch (err: any) {
         console.error("getAutomationSettings error:", err.message);
@@ -149,6 +151,7 @@ export async function getAutomationSettings() {
 
 export async function updateAutomationSettings(
     enabled: boolean,
+    enhanceEnabled?: boolean,
     lastRun?: { status: string; message?: string }
 ) {
     try {
@@ -157,6 +160,9 @@ export async function updateAutomationSettings(
             enabled,
             updatedAt: admin.firestore.Timestamp.now(),
         };
+        if (enhanceEnabled !== undefined) {
+            data.enhanceEnabled = enhanceEnabled;
+        }
         if (lastRun) {
             data.lastRunAt = admin.firestore.Timestamp.now();
             data.lastRunStatus = lastRun.status;

@@ -3,6 +3,8 @@
 import { Article } from "@/lib/news";
 import { publishToFacebook } from "@/app/actions/facebook";
 import { checkBulkPublished, saveToPublished, testFirebaseConnection } from "@/app/actions/db";
+import { enhanceAction } from "@/app/actions/automate";
+import { EnhancedData } from "@/lib/openrouter";
 import { useState, useEffect } from "react";
 
 interface DashboardGridProps {
@@ -20,6 +22,8 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
 
     // Track local edits
     const [editData, setEditData] = useState<Record<string, { title: string, description: string }>>({});
+    const [enhancedStore, setEnhancedStore] = useState<Record<string, EnhancedData>>({});
+    const [enhancingIds, setEnhancingIds] = useState<Record<string, boolean>>({});
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -71,6 +75,7 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
                 url: article.url,
                 description: finalDesc,
                 urlToImage: article.urlToImage,
+                enhancedData: enhancedStore[id] || undefined
             });
 
             if (!result.success) {
@@ -86,7 +91,8 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
                 title: finalTitle,
                 url: article.url,
                 fbPostId: result.postId,
-                category: category
+                category: category,
+                enhancedData: enhancedStore[id] ? JSON.stringify(enhancedStore[id]) : undefined
             });
 
             if (!dbResult.success) {
@@ -105,6 +111,29 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
             setErrorMsg(`Error: ${error.message}`);
         } finally {
             setLoadingIds(prev => ({ ...prev, [id]: false }));
+        }
+    };
+
+    const handleAIEnhance = async (article: Article) => {
+        const id = article.url;
+        setEnhancingIds(prev => ({ ...prev, [id]: true }));
+        setErrorMsg("");
+
+        try {
+            const currentTitle = editData[id]?.title || article.title;
+            const currentDesc = editData[id]?.description || article.description;
+
+            const enhanced = await enhanceAction(currentTitle, currentDesc || "");
+
+            setEnhancedStore(prev => ({ ...prev, [id]: enhanced }));
+            setSuccessMsg(`✓ AI Enhancement complete for "${article.title.slice(0, 20)}..."`);
+
+            // Auto-open edit mode if it wasn't to show off the results? No, let's just keep it subtle.
+        } catch (err: any) {
+            console.error("[Enhance] Error:", err.message);
+            setErrorMsg(`Enhancement failed: ${err.message}`);
+        } finally {
+            setEnhancingIds(prev => ({ ...prev, [id]: false }));
         }
     };
 
@@ -134,11 +163,13 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
                 {articles.map((article, index) => {
                     const isPublished = publishedUrls.has(article.url);
                     const isEditing = editingArticle === article.url;
+                    const isEnhancing = enhancingIds[article.url] || false;
+                    const enhancedData = enhancedStore[article.url];
                     const currentTitle = editData[article.url]?.title ?? article.title;
                     const currentDesc = editData[article.url]?.description ?? article.description;
 
                     return (
-                        <div key={index} className={`management-card fade-in ${isPublished ? 'published' : ''}`} style={{ animationDelay: `${index * 0.1}s` }}>
+                        <div key={index} className={`management-card fade-in ${isPublished ? 'published' : ''} ${enhancedData ? 'ai-enhanced' : ''}`} style={{ animationDelay: `${index * 0.1}s` }}>
                             <div className="card-main-content">
                                 <div className="card-image-wrapper">
                                     {article.urlToImage ? (
@@ -170,7 +201,20 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
                                     ) : (
                                         <>
                                             <h3 className="card-title">{currentTitle}</h3>
-                                            <p className="card-desc-preview">{currentDesc}</p>
+                                            <p className="card-desc-preview">
+                                                {enhancedData ? (
+                                                    <span className="ai-preview">
+                                                        {enhancedData.emojis} {enhancedData.description}
+                                                    </span>
+                                                ) : (
+                                                    currentDesc
+                                                )}
+                                            </p>
+                                            {enhancedData && (
+                                                <div className="ai-tags-preview">
+                                                    {enhancedData.hashtags.map((tag, i) => <span key={i}>{tag}</span>)}
+                                                </div>
+                                            )}
                                         </>
                                     )}
 
@@ -183,6 +227,19 @@ export default function DashboardGrid({ articles: initialArticles, category = 'g
                             <div className="management-controls">
                                 {!isPublished && (
                                     <>
+                                        <button
+                                            className={`enhance-btn ${isEnhancing ? 'loading' : ''} ${enhancedData ? 'completed' : ''}`}
+                                            onClick={() => handleAIEnhance(article)}
+                                            disabled={isEnhancing}
+                                        >
+                                            {isEnhancing ? (
+                                                <i className="fa-solid fa-spinner fa-spin"></i>
+                                            ) : enhancedData ? (
+                                                <><i className="fa-solid fa-check-double"></i> ENHANCED</>
+                                            ) : (
+                                                <><i className="fa-solid fa-wand-magic-sparkles"></i> ENHANCE WITH AI</>
+                                            )}
+                                        </button>
                                         <button
                                             className="edit-toggle-btn"
                                             onClick={() => setEditingArticle(isEditing ? null : article.url)}

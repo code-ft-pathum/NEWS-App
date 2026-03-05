@@ -1,8 +1,9 @@
 "use server";
 
 import { getNews, Article } from "@/lib/news";
-import { publishToFacebook } from "./facebook";
 import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings, logSyncSession } from "./db";
+import { enhanceArticle } from "@/lib/openrouter";
+import { publishToFacebook } from "./facebook";
 
 export async function triggerAutomation(categoryOverride?: string) {
     console.log("[Automation] Triggering news publication...");
@@ -29,12 +30,27 @@ export async function triggerAutomation(categoryOverride?: string) {
             return { success: false, message: "All fetched articles already published" };
         }
 
+        // AI Enhancement
+        const settings = await getAutomationSettings();
+        let enhancedData = undefined;
+
+        if (settings.enhanceEnabled) {
+            console.log("[Automation] AI Enhancement is ON. Enhancing...");
+            try {
+                const enhanced = await enhanceArticle(targetArticle.title, targetArticle.description || "");
+                enhancedData = enhanced;
+            } catch (e) {
+                console.warn("[Automation] AI Enhancement failed, using raw data.");
+            }
+        }
+
         // Publish to Facebook
         const result = await publishToFacebook({
             title: targetArticle.title,
             url: targetArticle.url,
             description: targetArticle.description,
             urlToImage: targetArticle.urlToImage,
+            enhancedData: enhancedData
         });
 
         if (result.success) {
@@ -42,7 +58,9 @@ export async function triggerAutomation(categoryOverride?: string) {
             await saveToPublished({
                 title: targetArticle.title,
                 url: targetArticle.url,
-                fbPostId: result.postId
+                fbPostId: result.postId,
+                category: category,
+                enhancedData: enhancedData ? JSON.stringify(enhancedData) : undefined
             });
 
             return { success: true, postId: result.postId, message: `Posted: ${targetArticle.title}` };
@@ -63,6 +81,7 @@ export async function syncAllCategories() {
     console.log("[ManualSync] Bulk syncing all categories...");
     const categories = ["general", "technology", "business", "science", "entertainment", "health", "sports"];
     let results = [];
+    const settings = await getAutomationSettings();
     let totalSynced = 0;
 
     for (const cat of categories) {
@@ -79,11 +98,23 @@ export async function syncAllCategories() {
             if (totalSynced >= 10) break;
 
             console.log(`[ManualSync] Posting: ${article.title} (${cat})`);
+            let enhancedData = undefined;
+
+            if (settings.enhanceEnabled) {
+                console.log(`[ManualSync] AI Enhancement for: ${article.title.slice(0, 30)}...`);
+                try {
+                    enhancedData = await enhanceArticle(article.title, article.description || "");
+                } catch (e) {
+                    console.warn(`[ManualSync] AI Enhancement failed for: ${article.title.slice(0, 30)}...`);
+                }
+            }
+
             const res = await publishToFacebook({
                 title: article.title,
                 url: article.url,
                 description: article.description,
-                urlToImage: article.urlToImage
+                urlToImage: article.urlToImage,
+                enhancedData: enhancedData
             });
 
             if (res.success) {
@@ -91,7 +122,8 @@ export async function syncAllCategories() {
                     title: article.title,
                     url: article.url,
                     fbPostId: res.postId,
-                    category: cat
+                    category: cat,
+                    enhancedData: enhancedData ? JSON.stringify(enhancedData) : undefined
                 });
                 results.push(`✓ ${article.title}`);
                 totalSynced++;
@@ -144,14 +176,14 @@ export async function checkAndPassiveSync() {
         console.log("[PassiveSync] Cooldown expired, triggering automation...");
 
         // Update lastRun immediately to prevent concurrent triggers
-        await updateAutomationSettings(settings.enabled || false, {
+        await updateAutomationSettings(settings.enabled || false, settings.enhanceEnabled || false, {
             status: "pending",
             message: "Passive sync started"
         });
 
         const result = await triggerAutomation();
 
-        await updateAutomationSettings(settings.enabled || false, {
+        await updateAutomationSettings(settings.enabled || false, settings.enhanceEnabled || false, {
             status: result.success ? "success" : "failed",
             message: result.message || result.error || ""
         });
@@ -174,6 +206,24 @@ export async function checkAndPassiveSync() {
 export async function toggleAutomationStatus() {
     const settings = await getAutomationSettings();
     const newStatus = !settings.enabled;
-    await updateAutomationSettings(newStatus);
+    await updateAutomationSettings(newStatus, settings.enhanceEnabled);
     return newStatus;
 }
+
+export async function toggleEnhanceStatus() {
+    const settings = await getAutomationSettings();
+    const newStatus = !settings.enhanceEnabled;
+    await updateAutomationSettings(settings.enabled, newStatus);
+    return newStatus;
+}
+
+export async function enhanceAction(title: string, description: string) {
+    try {
+        return await enhanceArticle(title, description);
+    } catch (error: any) {
+        console.error("[EnhanceAction] Error:", error.message);
+        throw new Error(error.message);
+    }
+}
+
+

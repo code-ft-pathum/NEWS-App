@@ -36,13 +36,28 @@ async function getPageAccessToken(userToken: string, pageId: string) {
     }
 }
 
-export async function publishToFacebook(article: { title: string, url: string, description: string | null, urlToImage: string | null }) {
+import { EnhancedData } from "@/lib/openrouter";
+
+export async function publishToFacebook(article: {
+    title: string,
+    url: string,
+    description: string | null,
+    urlToImage: string | null,
+    enhancedData?: EnhancedData
+}) {
     if (!FB_PAGE_ID || !FB_ACCESS_TOKEN || FB_ACCESS_TOKEN === 'PASTE_YOUR_PAGE_ACCESS_TOKEN_HERE') {
         throw new Error("Missing Facebook Page ID or Access Token. Access Denied.");
     }
 
     const backlink = "https://today-news-pathum.vercel.app/";
-    const message = `${article.title}\n\n${article.description || ""}\n\nRead more at: ${article.url}\n\nShared via ${backlink}`;
+
+    let message = "";
+    if (article.enhancedData) {
+        const { description, emojis, hashtags } = article.enhancedData;
+        message = `${emojis} ${article.title}\n\n${description}\n\n${hashtags.join(' ')}\n\nRead more at: ${article.url}\n\nShared via ${backlink}`;
+    } else {
+        message = `${article.title}\n\n${article.description || ""}\n\nRead more at: ${article.url}\n\nShared via ${backlink}`;
+    }
 
     try {
         // Exchange User Token for Page Token if we have a User Token

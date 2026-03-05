@@ -840,6 +840,12 @@ body::after {
   box-shadow: 0 5px 15px rgba(24, 119, 242, 0.4);
 }
 
+.hide-btn {
+  background: var(--glass);
+  border: 1px solid var(--card-border);
+  color: var(--muted);
+}
+
 .edit-toggle-btn {
   background: rgba(255, 62, 62, 0.1);
   color: var(--primary);
@@ -851,16 +857,123 @@ body::after {
   color: white;
 }
 
-.hide-btn {
-  background: var(--glass);
-  border: 1px solid var(--card-border);
-  color: var(--muted);
-}
-
 .hide-btn:hover {
   color: var(--foreground);
   background: var(--glass-hover);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* AI Enhancement UI */
+.management-card.ai-enhanced {
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: inset 0 0 30px rgba(16, 185, 129, 0.05);
+}
+
+.ai-preview {
+  color: #fbbf24;
+  font-style: italic;
+  font-weight: 500;
+  display: block;
+  border-left: 2px solid #fbbf24;
+  padding-left: 10px;
+  margin-top: 5px;
+}
+
+.ai-tags-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.ai-tags-preview span {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.enhance-btn {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 0.7rem 1.4rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.enhance-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: 0.5s;
+}
+
+.enhance-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.enhance-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #10b981 0%, #6366f1 100%);
+  color: white;
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+.enhance-btn.completed {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #818cf8;
+  color: #818cf8;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+}
+
+.enhance-btn.completed:hover:not(:disabled) {
+  background: #6366f1;
+  color: white;
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+.enhance-btn i {
+  font-size: 0.8rem;
+}
+
+.enhance-btn.loading {
+  opacity: 0.8;
+  cursor: wait;
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.enhance-btn.loading i {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {
@@ -879,9 +992,10 @@ body::after {
 
   .publish-btn,
   .hide-btn,
-  .edit-toggle-btn {
+  .edit-toggle-btn,
+  .enhance-btn {
     flex: 1;
+    min-width: 120px;
     justify-content: center;
   }
 }
-

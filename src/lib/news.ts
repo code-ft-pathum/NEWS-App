@@ -19,50 +19,69 @@ export interface NewsResponse {
     message?: string;
 }
 
-const API_KEY = process.env.NEWS_API_KEY;
+const API_KEY_1 = process.env.NEWS_API_KEY_1;
+const API_KEY_2 = process.env.NEWS_API_KEY_2;
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://newsapi.org/v2";
 
 export async function getNews(category: string = "general"): Promise<Article[]> {
-    if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
-        console.warn("NewsAPI key is not set. Using placeholder data.");
+    const keys = [API_KEY_1, API_KEY_2].filter(k => k && k !== 'YOUR_API_KEY_HERE');
+
+    if (keys.length === 0) {
+        console.warn("No NewsAPI keys are set. Using placeholder data.");
         return getPlaceholderArticles(category);
     }
 
-    try {
-        const params = new URLSearchParams({
-            category: category,
-            language: "en",
-            apiKey: API_KEY,
-            pageSize: "12",
-            // Removing sources=bbc-news to allow category filtering to work naturally
-            // If the user REALLY wants BBC only, they can add it back, but category + sources is bugged in V2
-        });
+    // Try each key until one works
+    for (let i = 0; i < keys.length; i++) {
+        const currentKey = keys[i];
+        console.log(`[News] Attempting fetch with Key ${i + 1}...`);
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+        try {
+            const params = new URLSearchParams({
+                category: category,
+                language: "en",
+                apiKey: currentKey!,
+                pageSize: "12",
+            });
 
-        const response = await fetch(`${API_URL}/top-headlines?${params.toString()}`, {
-            cache: 'no-store',
-            signal: controller.signal,
-        });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        clearTimeout(timeoutId);
+            const response = await fetch(`${API_URL}/top-headlines?${params.toString()}`, {
+                cache: 'no-store',
+                signal: controller.signal,
+            });
 
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                // If rate limited or other error, log it and try next key if available
+                console.warn(`[News] Key ${i + 1} failed: ${response.status}`);
+                if (i < keys.length - 1) continue;
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            }
+
+            const data: NewsResponse = await response.json();
+
+            if (data.status !== 'ok') {
+                console.warn(`[News] Key ${i + 1} data error: ${data.message}`);
+                if (i < keys.length - 1) continue;
+                throw new Error(data.message || "API error occurred");
+            }
+
+            console.log(`[News] Successfully fetched with Key ${i + 1}`);
+            return data.articles;
+        } catch (error: any) {
+            console.error(`[News] Error with Key ${i + 1}:`, error.message);
+            if (i < keys.length - 1) {
+                console.log("[News] Retrying with next available key...");
+                continue;
+            }
         }
-
-        const data: NewsResponse = await response.json();
-
-        if (data.status !== 'ok') {
-            throw new Error(data.message || "API error occurred");
-        }
-
-        return data.articles;
-    } catch (error) {
-        console.error("Error fetching news:", error);
-        return getPlaceholderArticles(category);
     }
+
+    // If all keys fail
+    return getPlaceholderArticles(category);
 }
 
 function getPlaceholderArticles(category: string): Article[] {
