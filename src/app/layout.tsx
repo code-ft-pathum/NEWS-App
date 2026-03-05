@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BackgroundSync from "@/components/BackgroundSync";
 
 export const viewport = {
   width: "device-width",
@@ -153,6 +154,7 @@ export default function RootLayout({
         <main className="main-content" role="main">
           {children}
         </main>
+        <BackgroundSync />
         <footer className="footer" role="contentinfo">
           <div className="container">
             <p>&copy; {new Date().getFullYear()} News Today. All rights reserved. Powered by <a href="https://newsapi.org" target="_blank" rel="noopener noreferrer">NewsAPI.org</a></p>

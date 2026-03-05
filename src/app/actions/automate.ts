@@ -2,7 +2,7 @@
 
 import { getNews } from "@/lib/news";
 import { publishToFacebook } from "./facebook";
-import { checkBulkPublished, saveToPublished } from "./db";
+import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings } from "./db";
 
 export async function triggerAutomation() {
     console.log("[Manual] Triggering news publication...");
@@ -50,6 +50,45 @@ export async function triggerAutomation() {
         return { success: false, message: "Facebook publish failed" };
     } catch (error: any) {
         console.error("[Manual] Error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Passive Sync: Triggers automatically when users browse the site.
+ * Won't run more than once every 4 hours.
+ */
+export async function checkAndPassiveSync() {
+    try {
+        const settings = await getAutomationSettings();
+
+        // Cooldown: 4 hours (14400000 ms)
+        const cooldown = 4 * 60 * 60 * 1000;
+        const lastRun = settings.lastRunAt ? new Date(settings.lastRunAt).getTime() : 0;
+        const now = Date.now();
+
+        if (now - lastRun < cooldown) {
+            return { success: false, message: "Sync on cooldown" };
+        }
+
+        console.log("[PassiveSync] Cooldown expired, triggering automation...");
+
+        // Update lastRun immediately to prevent concurrent triggers
+        await updateAutomationSettings(settings.enabled || false, {
+            status: "pending",
+            message: "Passive sync started"
+        });
+
+        const result = await triggerAutomation();
+
+        await updateAutomationSettings(settings.enabled || false, {
+            status: result.success ? "success" : "failed",
+            message: result.message || result.error || ""
+        });
+
+        return result;
+    } catch (error: any) {
+        console.error("[PassiveSync] Error:", error.message);
         return { success: false, error: error.message };
     }
 }
