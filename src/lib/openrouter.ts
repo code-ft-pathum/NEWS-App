@@ -48,13 +48,14 @@ Requirements:
                 "X-Title": "Today News App"
             },
             body: JSON.stringify({
-                "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
+                "model": "stepfun/step-3.5-flash:free",
                 "messages": [
                     {
                         "role": "user",
                         "content": initialPrompt
                     }
-                ]
+                ],
+                "reasoning": { "enabled": true }
             }),
             signal: controller.signal
         });
