@@ -82,79 +82,96 @@ export async function syncAllCategories(isPassive: boolean = false) {
     const logPrefix = isPassive ? "[PassiveBulkSync]" : "[ManualSync]";
     console.log(`${logPrefix} Bulk syncing all categories...`);
 
-    // Clean up old published articles (>24h) first
-    await cleanupOldPosts();
-    const categories = ["general", "technology", "business", "science", "entertainment", "health", "sports"];
-    let results = [];
-    const settings = await getAutomationSettings();
+    let results: string[] = [];
     let totalSynced = 0;
-    const MAX_SYNC = isPassive ? 5 : 15; // Lower cap for background sync to prevent Vercel 504 timeouts
 
-    for (const cat of categories) {
-        if (totalSynced >= MAX_SYNC) break; // Safety cap
+    try {
+        // Clean up old published articles (>24h) first
+        await cleanupOldPosts();
+        const categories = ["general", "technology", "business", "science", "entertainment", "health", "sports"];
+        const settings = await getAutomationSettings();
+        const MAX_SYNC = isPassive ? 5 : 15; // Lower cap for background sync to prevent Vercel 504 timeouts
 
-        const articles = await getNews(cat);
-        const urls = articles.map(a => a.url);
-        const publishedUrls = await checkBulkPublished(urls);
-        const publishedSet = new Set(publishedUrls);
+        for (const cat of categories) {
+            if (totalSynced >= MAX_SYNC) break; // Safety cap
 
-        const unposted = articles.filter(a => !publishedSet.has(a.url));
+            const articles = await getNews(cat);
+            const urls = articles.map(a => a.url);
+            const publishedUrls = await checkBulkPublished(urls);
+            const publishedSet = new Set(publishedUrls);
 
-        for (const article of unposted) {
-            if (totalSynced >= MAX_SYNC) break;
+            const unposted = articles.filter(a => !publishedSet.has(a.url));
 
-            console.log(`${logPrefix} Posting: ${article.title} (${cat})`);
-            let enhancedData = undefined;
+            for (const article of unposted) {
+                if (totalSynced >= MAX_SYNC) break;
 
-            if (settings.enhanceEnabled) {
-                console.log(`${logPrefix} AI Enhancement for: ${article.title.slice(0, 30)}...`);
+                console.log(`${logPrefix} Posting: ${article.title} (${cat})`);
+                let enhancedData = undefined;
+
+                if (settings.enhanceEnabled) {
+                    console.log(`${logPrefix} AI Enhancement for: ${article.title.slice(0, 30)}...`);
+                    try {
+                        enhancedData = await enhanceArticle(article.title, article.description || "");
+                    } catch (e) {
+                        console.warn(`${logPrefix} AI Enhancement failed for: ${article.title.slice(0, 30)}...`);
+                    }
+                }
+
                 try {
-                    enhancedData = await enhanceArticle(article.title, article.description || "");
-                } catch (e) {
-                    console.warn(`${logPrefix} AI Enhancement failed for: ${article.title.slice(0, 30)}...`);
+                    const res = await publishToFacebook({
+                        title: article.title,
+                        url: article.url,
+                        description: article.description,
+                        urlToImage: article.urlToImage,
+                        enhancedData: enhancedData
+                    });
+
+                    if (res.success) {
+                        await saveToPublished({
+                            title: article.title,
+                            url: article.url,
+                            fbPostId: res.postId,
+                            category: cat,
+                            enhancedData: enhancedData ? JSON.stringify(enhancedData) : undefined
+                        });
+                        results.push(`✓ ${article.title}`);
+                        totalSynced++;
+                        // Wait 1.5 seconds per post to prevent rate limiting but keep execution fast
+                        await new Promise(r => setTimeout(r, 1500));
+                    }
+                } catch (postError: any) {
+                    console.error(`${logPrefix} Failed to publish to FB:`, postError.message);
+                    results.push(`❌ Failed: ${article.title.slice(0, 30)}...`);
+                    // Specifically intentionally absorbing the error so the loop continues
+                    // to the next article without crashing the entire action.
                 }
             }
-
-            const res = await publishToFacebook({
-                title: article.title,
-                url: article.url,
-                description: article.description,
-                urlToImage: article.urlToImage,
-                enhancedData: enhancedData
-            });
-
-            if (res.success) {
-                await saveToPublished({
-                    title: article.title,
-                    url: article.url,
-                    fbPostId: res.postId,
-                    category: cat,
-                    enhancedData: enhancedData ? JSON.stringify(enhancedData) : undefined
-                });
-                results.push(`✓ ${article.title}`);
-                totalSynced++;
-                // Wait 1.5 seconds per post to prevent rate limiting but keep execution fast
-                await new Promise(r => setTimeout(r, 1500));
-            }
         }
+
+        const summary = {
+            success: true,
+            message: totalSynced > 0 ? `Successfully synced ${totalSynced} articles.` : "No new articles found to sync.",
+            details: results
+        };
+
+        // Save sync session to Firebase history
+        await logSyncSession({
+            type: isPassive ? "passive" : "manual",
+            status: totalSynced > 0 ? "success" : "no_updates",
+            syncedCount: totalSynced,
+            articles: results,
+            message: summary.message
+        });
+
+        return summary;
+    } catch (globalError: any) {
+        console.error(`${logPrefix} Critical execution error:`, globalError.message);
+        return {
+            success: false,
+            message: `Server Error: ${globalError.message}`,
+            details: results
+        };
     }
-
-    const summary = {
-        success: true,
-        message: totalSynced > 0 ? `Successfully synced ${totalSynced} articles.` : "No new articles found to sync.",
-        details: results
-    };
-
-    // Save sync session to Firebase history
-    await logSyncSession({
-        type: isPassive ? "passive" : "manual",
-        status: totalSynced > 0 ? "success" : "no_updates",
-        syncedCount: totalSynced,
-        articles: results,
-        message: summary.message
-    });
-
-    return summary;
 }
 
 /**
