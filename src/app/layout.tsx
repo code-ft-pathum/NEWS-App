@@ -7,6 +7,8 @@ export const viewport = {
   initialScale: 1,
 };
 
+export const maxDuration = 60; // Max out Vercel Serverless Function limit since we're using AI and Facebook publishing overrides
+
 export const metadata: Metadata = {
   title: "News Today • The Future of News",
   description: "A premium, lightning-fast news reader powered by AI.",

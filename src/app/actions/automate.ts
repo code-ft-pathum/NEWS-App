@@ -87,7 +87,7 @@ export async function syncAllCategories(isPassive: boolean = false) {
     let results = [];
     const settings = await getAutomationSettings();
     let totalSynced = 0;
-    const MAX_SYNC = 15;
+    const MAX_SYNC = isPassive ? 5 : 15; // Lower cap for background sync to prevent Vercel 504 timeouts
 
     for (const cat of categories) {
         if (totalSynced >= MAX_SYNC) break; // Safety cap
@@ -132,8 +132,8 @@ export async function syncAllCategories(isPassive: boolean = false) {
                 });
                 results.push(`✓ ${article.title}`);
                 totalSynced++;
-                // Wait 3 seconds per post to be safe
-                await new Promise(r => setTimeout(r, 3000));
+                // Wait 1.5 seconds per post to prevent rate limiting but keep execution fast
+                await new Promise(r => setTimeout(r, 1500));
             }
         }
     }
