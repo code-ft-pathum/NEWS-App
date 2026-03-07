@@ -1,6 +1,5 @@
 "use server";
 
-export const maxDuration = 60; // Max out Vercel Serverless Function limit since we're using AI and Facebook publishing overrides
 
 import { getNews, Article } from "@/lib/news";
 import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings, logSyncSession, cleanupOldPosts } from "./db";
