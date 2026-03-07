@@ -1,7 +1,7 @@
 "use server";
 
 import { getNews, Article } from "@/lib/news";
-import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings, logSyncSession } from "./db";
+import { checkBulkPublished, saveToPublished, getAutomationSettings, updateAutomationSettings, logSyncSession, cleanupOldPosts } from "./db";
 import { enhanceArticle } from "@/lib/openrouter";
 import { publishToFacebook } from "./facebook";
 
@@ -75,17 +75,22 @@ export async function triggerAutomation(categoryOverride?: string) {
 
 /**
  * Manually sync unposted articles across all categories.
- * Limit to 10 articles total to prevent rate limits.
+ * Limits to 15 articles total to prevent rate limits.
  */
-export async function syncAllCategories() {
-    console.log("[ManualSync] Bulk syncing all categories...");
+export async function syncAllCategories(isPassive: boolean = false) {
+    const logPrefix = isPassive ? "[PassiveBulkSync]" : "[ManualSync]";
+    console.log(`${logPrefix} Bulk syncing all categories...`);
+
+    // Clean up old published articles (>24h) first
+    await cleanupOldPosts();
     const categories = ["general", "technology", "business", "science", "entertainment", "health", "sports"];
     let results = [];
     const settings = await getAutomationSettings();
     let totalSynced = 0;
+    const MAX_SYNC = 15;
 
     for (const cat of categories) {
-        if (totalSynced >= 10) break; // Safety cap
+        if (totalSynced >= MAX_SYNC) break; // Safety cap
 
         const articles = await getNews(cat);
         const urls = articles.map(a => a.url);
@@ -95,17 +100,17 @@ export async function syncAllCategories() {
         const unposted = articles.filter(a => !publishedSet.has(a.url));
 
         for (const article of unposted) {
-            if (totalSynced >= 10) break;
+            if (totalSynced >= MAX_SYNC) break;
 
-            console.log(`[ManualSync] Posting: ${article.title} (${cat})`);
+            console.log(`${logPrefix} Posting: ${article.title} (${cat})`);
             let enhancedData = undefined;
 
             if (settings.enhanceEnabled) {
-                console.log(`[ManualSync] AI Enhancement for: ${article.title.slice(0, 30)}...`);
+                console.log(`${logPrefix} AI Enhancement for: ${article.title.slice(0, 30)}...`);
                 try {
                     enhancedData = await enhanceArticle(article.title, article.description || "");
                 } catch (e) {
-                    console.warn(`[ManualSync] AI Enhancement failed for: ${article.title.slice(0, 30)}...`);
+                    console.warn(`${logPrefix} AI Enhancement failed for: ${article.title.slice(0, 30)}...`);
                 }
             }
 
@@ -141,7 +146,7 @@ export async function syncAllCategories() {
 
     // Save sync session to Firebase history
     await logSyncSession({
-        type: "manual",
+        type: isPassive ? "passive" : "manual",
         status: totalSynced > 0 ? "success" : "no_updates",
         syncedCount: totalSynced,
         articles: results,
@@ -164,8 +169,8 @@ export async function checkAndPassiveSync() {
             return { success: false, message: "Automation is disabled" };
         }
 
-        // Cooldown: 30 minutes (1800000 ms)
-        const cooldown = 30 * 60 * 1000;
+        // Cooldown: 15 minutes (900,000 ms)
+        const cooldown = 15 * 60 * 1000;
         const lastRun = settings.lastRunAt ? new Date(settings.lastRunAt).getTime() : 0;
         const now = Date.now();
 
@@ -173,28 +178,23 @@ export async function checkAndPassiveSync() {
             return { success: false, message: "Sync on cooldown" };
         }
 
-        console.log("[PassiveSync] Cooldown expired, triggering automation...");
+        console.log("[PassiveSync] Cooldown expired, triggering bulk automation...");
 
         // Update lastRun immediately to prevent concurrent triggers
         await updateAutomationSettings(settings.enabled || false, settings.enhanceEnabled || false, {
             status: "pending",
-            message: "Passive sync started"
+            message: "Passive bulk sync started"
         });
 
-        const result = await triggerAutomation();
+        // Run the bulk sync instead of single category sync
+        const result = await syncAllCategories(true);
 
         await updateAutomationSettings(settings.enabled || false, settings.enhanceEnabled || false, {
             status: result.success ? "success" : "failed",
-            message: result.message || result.error || ""
+            message: result.message || ""
         });
 
-        // Save session to history
-        await logSyncSession({
-            type: "passive",
-            status: result.success ? "success" : "failed",
-            syncedCount: result.success ? 1 : 0,
-            articles: result.success && result.message ? [result.message] : [],
-        });
+        // (logSyncSession is already handled internally by syncAllCategories)
 
         return result;
     } catch (error: any) {

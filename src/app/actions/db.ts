@@ -94,22 +94,27 @@ export async function getPublishedPosts() {
     }
 }
 
-// Delete posts older than 30 days to keep the DB clean
+// Delete posts older than 24 hours to keep the DB clean and retry older content
 export async function cleanupOldPosts(): Promise<{ success: boolean; deleted?: number; error?: string }> {
     try {
         const db = getAdminDb();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const cutoff = admin.firestore.Timestamp.fromDate(thirtyDaysAgo);
+        const twentyFourHoursAgo = new Date();
+        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+        const cutoff = admin.firestore.Timestamp.fromDate(twentyFourHoursAgo);
 
         const snap = await db.collection("posts")
             .where("publishedAt", "<", cutoff)
             .get();
 
+        if (snap.empty) {
+            return { success: true, deleted: 0 };
+        }
+
         const batch = db.batch();
         snap.docs.forEach((doc: any) => batch.delete(doc.ref));
         await batch.commit();
 
+        console.log(`[DB] Cleanup complete: Removed ${snap.size} old published records.`);
         return { success: true, deleted: snap.size };
     } catch (err: any) {
         console.error("cleanupOldPosts error:", err.message);
