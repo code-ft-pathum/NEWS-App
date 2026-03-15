@@ -70,14 +70,14 @@ export default function AutomationControls() {
                         AI ENHANCEMENT {enhanceEnabled ? "ON" : "OFF"}
                     </div>
                     <div className="control-subtext">
-                        Auto-enrich with Emojis & Hashtags
+                        Single-post automation only. Bulk sync always skips AI.
                     </div>
                 </div>
                 <button
                     onClick={handleToggleEnhance}
                     disabled={loading}
                     className={`control-switch ${enhanceEnabled ? "enabled-ai" : "disabled"}`}
-                    title={enhanceEnabled ? "Disable AI Enhancement" : "Enable AI Enhancement"}
+                    title={enhanceEnabled ? "Disable AI for single-post automation" : "Enable AI for single-post automation"}
                 >
                     <div className="switch-knob"></div>
                     <span className="switch-text">{enhanceEnabled ? "OFF" : "ON"}</span>

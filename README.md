@@ -34,3 +34,12 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Automation Notes
+
+- Bulk sync publishes directly to Facebook without waiting for AI enhancement. This keeps scheduled runs fast and avoids timeouts.
+- Manual article enhancement in the dashboard still works as before.
+- Scheduled publishing is intended to be triggered by `cron-job.org` against `/api/cron/sync-facebook`.
+- Protect the route with `CRON_SECRET` and send it as `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret`.
+- Recommended cron-job.org cadence for this app: every 5 minutes.
+- The server-side scheduled sync cap is 2 Facebook posts per run.

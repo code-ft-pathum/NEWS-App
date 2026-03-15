@@ -8,9 +8,6 @@ export default function ManualSync() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [progress, setProgress] = useState<string[]>([]);
 
-    // Stop syncing after X posts to avoid rate-limiting Facebook
-    const MAX_POSTS_PER_SYNC = 5;
-
     const startSync = async () => {
         if (isSyncing) return;
 
@@ -28,8 +25,9 @@ export default function ManualSync() {
             } else {
                 setProgress(prev => [...prev, `❌ Error: ${result.message}`]);
             }
-        } catch (err: any) {
-            setProgress(prev => [...prev, `❌ Critical Error: ${err.message}`]);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Unknown error";
+            setProgress(prev => [...prev, `❌ Critical Error: ${message}`]);
         }
 
         setIsSyncing(false);
@@ -63,7 +61,7 @@ export default function ManualSync() {
             </div>
 
             <p className="sync-hint">
-                <i className="fa-solid fa-circle-info"></i> Scans all categories and syncs unposted articles to Facebook.
+                <i className="fa-solid fa-circle-info"></i> Scans all categories and syncs unposted articles to Facebook in fast mode without AI enhancement.
             </p>
         </div>
     );
