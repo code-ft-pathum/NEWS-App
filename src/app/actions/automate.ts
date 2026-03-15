@@ -98,6 +98,8 @@ export async function syncAllCategories(mode: "manual" | "passive" | "cron" = "m
         // Clean up old published articles (>24h) first
         await cleanupOldPosts();
         const categories = ["general", "technology", "business", "science", "entertainment", "health", "sports"];
+        const settings = await getAutomationSettings();
+        const useAiEnhancement = isScheduledMode && settings.enhanceEnabled;
         const maxSync = isScheduledMode ? SCHEDULED_SYNC_LIMIT : MANUAL_SYNC_LIMIT;
 
         for (const cat of categories) {
@@ -114,13 +116,24 @@ export async function syncAllCategories(mode: "manual" | "passive" | "cron" = "m
                 if (totalSynced >= maxSync) break;
 
                 console.log(`${logPrefix} Posting: ${article.title} (${cat})`);
+                let enhancedData;
+
+                if (useAiEnhancement) {
+                    console.log(`${logPrefix} AI Enhancement for: ${article.title.slice(0, 30)}...`);
+                    try {
+                        enhancedData = await enhanceArticle(article.title, article.description || "");
+                    } catch {
+                        console.warn(`${logPrefix} AI Enhancement failed for: ${article.title.slice(0, 30)}...`);
+                    }
+                }
 
                 try {
                     const res = await publishToFacebook({
                         title: article.title,
                         url: article.url,
                         description: article.description,
-                        urlToImage: article.urlToImage
+                        urlToImage: article.urlToImage,
+                        enhancedData
                     });
 
                     if (res.success) {
@@ -128,7 +141,8 @@ export async function syncAllCategories(mode: "manual" | "passive" | "cron" = "m
                             title: article.title,
                             url: article.url,
                             fbPostId: res.postId,
-                            category: cat
+                            category: cat,
+                            enhancedData: enhancedData ? JSON.stringify(enhancedData) : undefined
                         });
                         results.push(`✓ ${article.title}`);
                         totalSynced++;
@@ -147,7 +161,7 @@ export async function syncAllCategories(mode: "manual" | "passive" | "cron" = "m
         const summary = {
             success: true,
             message: totalSynced > 0
-                ? `Successfully synced ${totalSynced} article${totalSynced === 1 ? "" : "s"}${isScheduledMode ? " in fast mode." : "."}`
+                ? `Successfully synced ${totalSynced} article${totalSynced === 1 ? "" : "s"}${isScheduledMode ? (useAiEnhancement ? " with AI enhancement." : " in fast mode.") : "."}`
                 : "No new articles found to sync.",
             details: results
         };

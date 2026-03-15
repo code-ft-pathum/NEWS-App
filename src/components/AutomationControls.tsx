@@ -70,14 +70,14 @@ export default function AutomationControls() {
                         AI ENHANCEMENT {enhanceEnabled ? "ON" : "OFF"}
                     </div>
                     <div className="control-subtext">
-                        Single-post automation only. Bulk sync always skips AI.
+                        Applies to scheduled trigger sync. Manual bulk sync stays fast.
                     </div>
                 </div>
                 <button
                     onClick={handleToggleEnhance}
                     disabled={loading}
                     className={`control-switch ${enhanceEnabled ? "enabled-ai" : "disabled"}`}
-                    title={enhanceEnabled ? "Disable AI for single-post automation" : "Enable AI for single-post automation"}
+                    title={enhanceEnabled ? "Disable AI for scheduled trigger sync" : "Enable AI for scheduled trigger sync"}
                 >
                     <div className="switch-knob"></div>
                     <span className="switch-text">{enhanceEnabled ? "OFF" : "ON"}</span>
